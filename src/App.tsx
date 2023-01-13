@@ -1,8 +1,18 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import logo from './logo.svg';
 import './App.css';
+import init from 'wasm-lib';
+import { add } from 'wasm-lib';
 
 function App() {
+
+    useEffect(() => {
+	init().then(() => {
+	    console.log(add(5, 6))
+	    
+	})
+    }, [])
+
   return (
     <div className="App">
       <header className="App-header">
