@@ -1,15 +1,15 @@
 import React, {useEffect} from 'react';
 import logo from './logo.svg';
 import './App.css';
-import init from 'wasm-lib';
-import { add } from 'wasm-lib';
+import init from 'gameboy';
+import { add, dec } from 'gameboy';
 
 function App() {
-
+    console.log("Hello")
     useEffect(() => {
 	init().then(() => {
 	    console.log(add(5, 6))
-	    
+        console.log(dec(5, 6))
 	})
     }, [])
 
