@@ -15,10 +15,10 @@ impl CPU {
         return CPU{
             a: 0,
             flags: Flags{
-                Z: 0,
-                N: 0,
-                H: 0,
-                C: 0,
+                z: 0,
+                n: 0,
+                h: 0,
+                cy: 0,
             },
             bc: Register::new(),
             de: Register::new(),
@@ -36,15 +36,15 @@ impl CPU {
         self.de.sub.low = 0xd8;
         self.hl.sub.high = 0x01;
         self.hl.sub.low = 0x4d;
-        self.flags.Z = 1;
-        self.flags.N = 0;
-        self.flags.H = 1;
-        self.flags.C = 1;
+        self.flags.z = 1;
+        self.flags.n = 0;
+        self.flags.h = 1;
+        self.flags.cy = 1;
         self.sp = 0xfffe;
         self.pc = 0x100;
     }
 
-    // Checks if the H flag should be set when adding a and b
+    // Checks if the h flag should be set when adding a and b
     fn h_test(a: u8, b: u8) -> bool {
         return (a & 0xf) + (b & 0xf) > 0xf
     }
@@ -108,9 +108,9 @@ impl CPU {
         } else {
             orig + 1
         };
-        self.flags.Z = if value == 0 { 1 } else { 0 };
-        self.flags.N = 0;
-        self.flags.H = if CPU::h_test(orig, 1) { 1 } else { 0 };
+        self.flags.z = if value == 0 { 1 } else { 0 };
+        self.flags.n = 0;
+        self.flags.h = if CPU::h_test(orig, 1) { 1 } else { 0 };
         self.set_register_8(reg, value);
     }
 
@@ -142,7 +142,17 @@ impl CPU {
                     self.bc.sub.high = d8;
                 }
                 0x07 => { // RLCA
-                    self.a.rotate_left(1);
+                    let value = self.get_register_8(&Register8::A).rotate_left(1);
+                    self.set_register_8(&Register8::A, value);
+                    self.flags.cy = value & 0x01;
+                    self.flags.h = 0;
+                    self.flags.z = 0;
+                    self.flags.n = 0;
+                }
+                0x08 => { // LD (a16), SP
+                    let a16 = mem.read_16(self.pc);
+                    self.pc += 2;
+                    mem.write_16(a16, self.sp);
                 }
 
                 _ => {
@@ -155,10 +165,10 @@ impl CPU {
 }
 
 struct Flags {
-    Z: u8,
-    N: u8,
-    H: u8,
-    C: u8
+    z: u8,
+    n: u8,
+    h: u8,
+    cy: u8
 }
 
 enum Register8 {
@@ -239,7 +249,7 @@ mod cpu_tests {
             cpu.run(&mut mem);
 
             assert_eq!(cpu.bc.sub.high, 0);
-            assert_eq!(cpu.flags.H, 1);
+            assert_eq!(cpu.flags.h, 1);
         }
     }
 }
