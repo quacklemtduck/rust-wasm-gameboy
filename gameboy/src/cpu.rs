@@ -154,6 +154,32 @@ impl CPU {
         self.set_register_16(reg, value);
     }
 
+    fn inc_mem(&mut self, mem: &mut Memory, addr: u16) {
+        let orig = mem.read(addr);
+        let value = if orig == 0xff {
+            0
+        } else {
+            orig + 1
+        };
+        self.flags.z = if value == 0 { 1 } else { 0 };
+        self.flags.n = 0;
+        self.flags.h = if CPU::h_test(orig, 1) { 1 } else { 0 };
+        mem.write(addr, value);
+    }
+
+    fn dec_mem(&mut self, mem: &mut Memory, addr: u16) {
+        let orig = mem.read(addr);
+        let value = if orig == 0 {
+            0xff
+        } else {
+            orig - 1
+        };
+        self.flags.z = if value == 0 { 1 } else { 0 };
+        self.flags.n = 1;
+        self.flags.h = if CPU::h_test_sub(orig, 1) {1} else {0};
+        mem.write(addr, value);
+    }
+
     fn add_hl(&mut self, reg: &Register16) {
         let reg_val = self.get_register_16(reg);
         let hl = self.get_register_16(&Register16::HL);
@@ -327,12 +353,12 @@ impl CPU {
                     }
                 }
                 0x21 => { // LD HL, d16
-                    let value = mem.read_16(self.pc);
+                    let d16 = mem.read_16(self.pc);
                     self.pc += 2;
-                    self.set_register_16(&Register16::HL, value);
+                    self.set_register_16(&Register16::HL, d16);
                 }
                 0x22 => { // LD (HL+), A
-                    mem.write(self.get_register_16(&Register16::DE), self.get_register_8(&Register8::A));
+                    mem.write(self.get_register_16(&Register16::HL), self.get_register_8(&Register8::A));
                     self.inc_register_16(&Register16::HL);
                 }
                 0x23 => { // INC HL
@@ -423,6 +449,82 @@ impl CPU {
                     self.set_register_8(&Register8::A, value);
                     self.flags.n = 1;
                     self.flags.h = 1;
+                }
+                0x30 => { // JR NC, s8
+                    let s8 = mem.read(self.pc);
+                    self.pc += 1;
+                    if self.flags.cy == 0 {
+                        self.jump_relative(s8)
+                    }
+                }
+                0x31 => { // LD SP, d16
+                    let d16 = mem.read_16(self.pc);
+                    self.pc += 2;
+                    self.set_register_16(&Register16::SP, d16);
+                }
+                0x32 => { // LD (HL-), A
+                    mem.write(self.get_register_16(&Register16::HL), self.get_register_8(&Register8::A));
+                    self.dec_register_16(&Register16::HL);
+                }
+                0x33 => { // INC SP
+                    self.inc_register_16(&Register16::SP);
+                }
+                0x34 => { // INC (HL)
+                    let addr = self.get_register_16(&Register16::HL);
+                    self.inc_mem(mem, addr);
+                }
+                0x35 => { // DEC (HL)
+                    let addr = self.get_register_16(&Register16::HL);
+                    self.dec_mem(mem, addr);
+                }
+                0x36 => { // LD (HL), d8
+                    let d8 = mem.read(self.pc);
+                    self.pc += 1;
+                    let addr = self.get_register_16(&Register16::HL);
+                    mem.write(addr, d8);
+                }
+                0x37 => { // SCF
+                    self.flags.cy = 1;
+                    self.flags.h = 0;
+                    self.flags.n = 0;
+                }
+                0x38 => { // JR C, s8
+                    let s8 = mem.read(self.pc);
+                    self.pc += 1;
+                    if self.flags.cy == 1 {
+                        self.jump_relative(s8);
+                    }
+                }
+                0x39 => { // ADD, HL, SP
+                    self.add_hl(&Register16::SP);
+                }
+                0x3A => { // LD A, (HL-)
+                    let val = mem.read(self.get_register_16(&Register16::DE));
+                    self.a = val;
+                    self.dec_register_16(&Register16::HL);
+                }
+                0x3B => { // DEC SP
+                    self.dec_register_16(&Register16::SP);
+                }
+                0x3C => { // INC A
+                    self.inc_register_8(&Register8::A);
+                }
+                0x3D => { // DEC A
+                    self.dec_register_8(&Register8::A);
+                }
+                0x3E => { // LD A, d8
+                    let d8 = mem.read(self.pc);
+                    self.pc += 1;
+                    self.set_register_8(&Register8::A, d8);
+                }
+                0x3F => { // CCF
+                    if self.flags.cy > 0 {
+                        self.flags.cy = 0;
+                    } else {
+                        self.flags.cy = 1;
+                    }
+                    self.flags.n = 0;
+                    self.flags.h = 0;
                 }
 
                 _ => {
