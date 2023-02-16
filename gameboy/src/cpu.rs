@@ -317,6 +317,34 @@ impl CPU {
         }
     }
 
+    fn and_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let value = orig & val;
+        self.set_register_8(&Register8::A, value);
+        self.flags.h = 1;
+        self.flags.cy = 0;
+        self.flags.n = 0;
+        if value == 0 {
+            self.flags.z = 1;
+        }else{
+            self.flags.z = 0;
+        }
+    }
+
+    fn xor_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let value = orig ^ val;
+        self.set_register_8(&Register8::A, value);
+        self.flags.h = 0;
+        self.flags.cy = 0;
+        self.flags.n = 0;
+        if value == 0 {
+            self.flags.z = 1;
+        }else{
+            self.flags.z = 0;
+        }
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -927,6 +955,56 @@ impl CPU {
                 }
                 0x9F => { // SBC A, A
                     self.sbc_from_a(self.get_register_8(&Register8::A));
+                }
+                0xA0 => { // AND B
+                    self.and_a(self.get_register_8(&Register8::B));
+                }
+                0xA1 => { // AND C
+                    self.and_a(self.get_register_8(&Register8::C));
+                }
+                0xA2 => { // AND D
+                    self.and_a(self.get_register_8(&Register8::D));
+                }
+                0xA3 => { // AND E
+                    self.and_a(self.get_register_8(&Register8::E));
+                }
+                0xA4 => { // AND H
+                    self.and_a(self.get_register_8(&Register8::H));
+                }
+                0xA5 => { // AND L
+                    self.and_a(self.get_register_8(&Register8::L));
+                }
+                0xA6 => { // AND (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.and_a(val);
+                }
+                0xA7 => { // AND A
+                    self.and_a(self.get_register_8(&Register8::A));
+                }
+                0xA8 => { // XOR B
+                    self.xor_a(self.get_register_8(&Register8::B));
+                }
+                0xA9 => { // XOR C
+                    self.xor_a(self.get_register_8(&Register8::C));
+                }
+                0xAA => { // XOR D
+                    self.xor_a(self.get_register_8(&Register8::D));
+                }
+                0xAB => { // XOR E
+                    self.xor_a(self.get_register_8(&Register8::E));
+                }
+                0xAC => { // XOR H
+                    self.xor_a(self.get_register_8(&Register8::H));
+                }
+                0xAD => { // XOR L
+                    self.xor_a(self.get_register_8(&Register8::L));
+                }
+                0xAE => { // XOR (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.xor_a(val);
+                }
+                0xAF => { // XOR A
+                    self.xor_a(self.get_register_8(&Register8::A));
                 }
 
                 _ => {
