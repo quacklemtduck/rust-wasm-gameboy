@@ -221,6 +221,54 @@ impl CPU {
         mem.write(addr, val);
     }
 
+    fn add_to_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let (value, carry) = orig.overflowing_add(val);
+        self.set_register_8(&Register8::A, value);
+        if CPU::h_test(orig, val) {
+            self.flags.h = 1;
+        } else {
+            self.flags.h = 0;
+        }
+        self.flags.n = 0;
+        if carry {
+            self.flags.cy = 1;
+        } else {
+            self.flags.cy = 0;
+        }
+        if value == 0 {
+            self.flags.z = 1;
+        } else {
+            self.flags.z = 0;
+        }
+    }
+
+    fn adc_to_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let cy = self.flags.cy;
+        let (mut value, mut carry) = orig.overflowing_add(val);
+        let (value2, carry2) = value.overflowing_add(cy);
+        value = value2;
+        carry  = carry || carry2;
+        self.set_register_8(&Register8::A, value);
+        if (a & 0xf) + (b &0xf) + carry > 0xf {
+            self.flags.h = 1;
+        } else {
+            self.flags.h = 0; // TODO In case of bugs, remove?
+        }
+        self.flags.n = 0;
+        if carry {
+            self.flags.cy = 1;
+        } else {
+            self.flags.cy = 0;
+        }
+        if value == 0 {
+            self.flags.z = 1;
+        } else {
+            self.flags.z = 0;
+        }
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -731,6 +779,56 @@ impl CPU {
                 }
                 0x7F => { // LD A, A
                     self.ld_r_r(&Register8::A, &Register8::A);
+                }
+                0x80 => { // ADD A, B
+                    self.add_to_a(self.get_register_8(&Register8::B));
+                }
+                0x81 => { // ADD A, C
+                    self.add_to_a(self.get_register_8(&Register8::C));
+                }
+                0x82 => { // ADD A, D
+                    self.add_to_a(self.get_register_8(&Register8::D));
+                }
+                0x83 => { // ADD A, E
+                    self.add_to_a(self.get_register_8(&Register8::E));
+                }
+                0x84 => { // ADD A, H
+                    self.add_to_a(self.get_register_8(&Register8::H));
+                }
+                0x85 => { // ADD A, L
+                    self.add_to_a(self.get_register_8(&Register8::L));
+                }
+                0x86 => { // ADD A, (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.add_to_a(val);
+                }
+                0x87 => { // ADD A, A
+                    self.add_to_a(self.get_register_8(&Register8::A));
+                }
+                0x88 => { // ADC A, B
+                    self.adc_to_a(self.get_register_8(&Register8::B));
+                }
+                0x89 => { // ADC A, C
+                    self.adc_to_a(self.get_register_8(&Register8::C));
+                }
+                0x8A => { // ADC A, D
+                    self.adc_to_a(self.get_register_8(&Register8::D));
+                }
+                0x8B => { // ADC A, E
+                    self.adc_to_a(self.get_register_8(&Register8::E));
+                }
+                0x8C => { // ADC A, H
+                    self.adc_to_a(self.get_register_8(&Register8::H));
+                }
+                0x8D => { // ADC A, L
+                    self.adc_to_a(self.get_register_8(&Register8::L));
+                }
+                0x8E => { // ADC A, (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.adc_to_a(val);
+                }
+                0x8F => { // ADC A, A
+                    self.adc_to_a(self.get_register_8(&Register8::A));
                 }
 
                 _ => {
