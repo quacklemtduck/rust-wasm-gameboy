@@ -205,6 +205,22 @@ impl CPU {
         }
     }
 
+    fn ld_r_r(&mut self, reg1: &Register8, reg2: &Register8) {
+        let val = self.get_register_8(reg2);
+        self.set_register_8(reg1, val);
+    }
+
+    fn ld_r_hl(&mut self, mem: &Memory, reg: &Register8) {
+        let val = mem.read(self.get_register_16(&Register16::HL));
+        self.set_register_8(reg, val);
+    }
+
+    fn ld_hl_r(&self, mem: &mut Memory, reg: &Register8) {
+        let val = self.get_register_8(reg);
+        let addr = self.get_register_16(&Register16::HL);
+        mem.write(addr, val);
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -525,6 +541,54 @@ impl CPU {
                     }
                     self.flags.n = 0;
                     self.flags.h = 0;
+                }
+                0x40 => { // LD B, B
+                    self.ld_r_r(&Register8::B, &Register8::B);
+                }
+                0x41 => { // LD B, C
+                    self.ld_r_r(&Register8::B, &Register8::C);
+                }
+                0x42 => { // LD B, D
+                    self.ld_r_r(&Register8::B, &Register8::D);
+                }
+                0x43 => { // LD B, E
+                    self.ld_r_r(&Register8::B, &Register8::E);
+                }
+                0x44 => { // LD B, H
+                    self.ld_r_r(&Register8::B, &Register8::H);
+                }
+                0x45 => { // LD B, L
+                    self.ld_r_r(&Register8::B, &Register8::L);
+                }
+                0x46 => { // LD B, (HL)
+                    self.ld_r_hl(mem, &Register8::B);
+                }
+                0x47 => { // LD B, A
+                    self.ld_r_r(&Register8::B, &Register8::A);
+                }
+                0x48 => { // LD C, B
+                    self.ld_r_r(&Register8::C, &Register8::B);
+                }
+                0x49 => { // LD C, C
+                    self.ld_r_r(&Register8::C, &Register8::C);
+                }
+                0x4A => { // LD C, D
+                    self.ld_r_r(&Register8::C, &Register8::D);
+                }
+                0x4B => { // LD C, E
+                    self.ld_r_r(&Register8::C, &Register8::E);
+                }
+                0x4C => { // LD C, H
+                    self.ld_r_r(&Register8::C, &Register8::H);
+                }
+                0x4D => { // LD C, L
+                    self.ld_r_r(&Register8::C, &Register8::L);
+                }
+                0x4E => { // LD C, (HL)
+                    self.ld_r_hl(mem, &Register8::C);
+                }
+                0x4F => { // LD C, A
+                    self.ld_r_r(&Register8::C, &Register8::A);
                 }
 
                 _ => {
