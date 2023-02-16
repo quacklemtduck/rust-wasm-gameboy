@@ -243,6 +243,28 @@ impl CPU {
         }
     }
 
+    fn sub_from_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let (value, carry) = orig.overflowing_sub(val);
+        self.set_register_8(&Register8::A, value);
+        if CPU::h_test_sub(orig, val) {
+            self.flags.h = 1;
+        } else {
+            self.flags.h = 0;
+        }
+        self.flags.n = 1;
+        if carry {
+            self.flags.cy = 1;
+        } else {
+            self.flags.cy = 0;
+        }
+        if value == 0 {
+            self.flags.z = 1;
+        } else {
+            self.flags.z = 0;
+        }
+    }
+
     fn adc_to_a(&mut self, val: u8){
         let orig = self.get_register_8(&Register8::A);
         let cy = self.flags.cy;
@@ -251,12 +273,38 @@ impl CPU {
         value = value2;
         carry  = carry || carry2;
         self.set_register_8(&Register8::A, value);
-        if (a & 0xf) + (b &0xf) + carry > 0xf {
+        if (orig & 0xf) + (val &0xf) + cy > 0xf {
             self.flags.h = 1;
         } else {
             self.flags.h = 0; // TODO In case of bugs, remove?
         }
         self.flags.n = 0;
+        if carry {
+            self.flags.cy = 1;
+        } else {
+            self.flags.cy = 0;
+        }
+        if value == 0 {
+            self.flags.z = 1;
+        } else {
+            self.flags.z = 0;
+        }
+    }
+
+    fn sbc_from_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let cy = self.flags.cy;
+        let (mut value, mut carry) = orig.overflowing_sub(val);
+        let (value2, carry2) = value.overflowing_sub(cy);
+        value = value2;
+        carry  = carry || carry2;
+        self.set_register_8(&Register8::A, value);
+        if (orig & 0xf).wrapping_sub(val & 0xf).wrapping_sub(cy) > 0x7f {
+            self.flags.h = 1;
+        } else {
+            self.flags.h = 0; // TODO In case of bugs, remove?
+        }
+        self.flags.n = 1;
         if carry {
             self.flags.cy = 1;
         } else {
@@ -829,6 +877,56 @@ impl CPU {
                 }
                 0x8F => { // ADC A, A
                     self.adc_to_a(self.get_register_8(&Register8::A));
+                }
+                0x90 => { // SUB A, B
+                    self.sub_from_a(self.get_register_8(&Register8::B));
+                }
+                0x91 => { // SUB A, C
+                    self.sub_from_a(self.get_register_8(&Register8::C));
+                }
+                0x92 => { // SUB A, D
+                    self.sub_from_a(self.get_register_8(&Register8::D));
+                }
+                0x93 => { // SUB A, E
+                    self.sub_from_a(self.get_register_8(&Register8::E));
+                }
+                0x94 => { // SUB A, H
+                    self.sub_from_a(self.get_register_8(&Register8::H));
+                }
+                0x95 => { // SUB A, L
+                    self.sub_from_a(self.get_register_8(&Register8::L));
+                }
+                0x96 => { // SUB A, (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.sub_from_a(val);
+                }
+                0x97 => { // SUB A, A
+                    self.sub_from_a(self.get_register_8(&Register8::A));
+                }
+                0x98 => { // SBC A, B
+                    self.sbc_from_a(self.get_register_8(&Register8::B));
+                }
+                0x99 => { // SBC A, C
+                    self.sbc_from_a(self.get_register_8(&Register8::C));
+                }
+                0x9A => { // SBC A, D
+                    self.sbc_from_a(self.get_register_8(&Register8::D));
+                }
+                0x9B => { // SBC A, E
+                    self.sbc_from_a(self.get_register_8(&Register8::E));
+                }
+                0x9C => { // SBC A, H
+                    self.sbc_from_a(self.get_register_8(&Register8::H));
+                }
+                0x9D => { // SBC A, L
+                    self.sbc_from_a(self.get_register_8(&Register8::L));
+                }
+                0x9E => { // SBC A, (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.sbc_from_a(val);
+                }
+                0x9F => { // SBC A, A
+                    self.sbc_from_a(self.get_register_8(&Register8::A));
                 }
 
                 _ => {
