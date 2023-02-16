@@ -686,6 +686,52 @@ impl CPU {
                 0x6F => { // LD L, A
                     self.ld_r_r(&Register8::L, &Register8::A);
                 }
+                0x70 => { // LD (HL), B
+                    self.ld_hl_r(mem, &Register8::B);
+                }
+                0x71 => { // LD (HL), C
+                    self.ld_hl_r(mem, &Register8::C);
+                }
+                0x72 => { // LD (HL), D
+                    self.ld_hl_r(mem, &Register8::D);
+                }
+                0x73 => { // LD (HL), E
+                    self.ld_hl_r(mem, &Register8::E);
+                }
+                0x74 => { // LD (HL), H
+                    self.ld_hl_r(mem, &Register8::H);
+                }
+                0x75 => { // LD (HL), L
+                    self.ld_hl_r(mem, &Register8::L);
+                }
+                // TODO 0x76 HALT
+                0x77 => { // LD (HL), A
+                    self.ld_hl_r(mem, &Register8::A);
+                }
+                0x78 => { // LD A, B
+                    self.ld_r_r(&Register8::A, &Register8::B);
+                }
+                0x79 => { // LD A, C
+                    self.ld_r_r(&Register8::A, &Register8::C);
+                }
+                0x7A => { // LD A, D
+                    self.ld_r_r(&Register8::A, &Register8::D);
+                }
+                0x7B => { // LD A, E
+                    self.ld_r_r(&Register8::A, &Register8::E);
+                }
+                0x7C => { // LD A, H
+                    self.ld_r_r(&Register8::A, &Register8::H);
+                }
+                0x7D => { // LD A, L
+                    self.ld_r_r(&Register8::A, &Register8::L);
+                }
+                0x7E => { // LD A, (HL)
+                    self.ld_r_hl(mem, &Register8::A);
+                }
+                0x7F => { // LD A, A
+                    self.ld_r_r(&Register8::A, &Register8::A);
+                }
 
                 _ => {
                     println!("Unsupported instruction: 0x{:02x}", instruction);
