@@ -638,6 +638,54 @@ impl CPU {
                 0x5F => { // LD E, A
                     self.ld_r_r(&Register8::E, &Register8::A);
                 }
+                0x60 => { // LD H, B
+                    self.ld_r_r(&Register8::H, &Register8::B);
+                }
+                0x61 => { // LD H, C
+                    self.ld_r_r(&Register8::H, &Register8::C);
+                }
+                0x62 => { // LD H, D
+                    self.ld_r_r(&Register8::H, &Register8::D);
+                }
+                0x63 => { // LD H, E
+                    self.ld_r_r(&Register8::H, &Register8::E);
+                }
+                0x64 => { // LD H, H
+                    self.ld_r_r(&Register8::H, &Register8::H);
+                }
+                0x65 => { // LD H, L
+                    self.ld_r_r(&Register8::H, &Register8::L);
+                }
+                0x66 => { // LD H, (HL)
+                    self.ld_r_hl(mem, &Register8::H);
+                }
+                0x67 => { // LD H, A
+                    self.ld_r_r(&Register8::H, &Register8::A);
+                }
+                0x68 => { // LD L, B
+                    self.ld_r_r(&Register8::L, &Register8::B);
+                }
+                0x69 => { // LD L, C
+                    self.ld_r_r(&Register8::L, &Register8::C);
+                }
+                0x6A => { // LD L, D
+                    self.ld_r_r(&Register8::L, &Register8::D);
+                }
+                0x6B => { // LD L, E
+                    self.ld_r_r(&Register8::L, &Register8::E);
+                }
+                0x6C => { // LD L, H
+                    self.ld_r_r(&Register8::L, &Register8::H);
+                }
+                0x6D => { // LD L, L
+                    self.ld_r_r(&Register8::L, &Register8::L);
+                }
+                0x6E => { // LD L, (HL)
+                    self.ld_r_hl(mem, &Register8::L);
+                }
+                0x6F => { // LD L, A
+                    self.ld_r_r(&Register8::L, &Register8::A);
+                }
 
                 _ => {
                     println!("Unsupported instruction: 0x{:02x}", instruction);
