@@ -345,6 +345,40 @@ impl CPU {
         }
     }
 
+    fn or_a(&mut self, val: u8){
+        let orig = self.get_register_8(&Register8::A);
+        let value = orig | val;
+        self.set_register_8(&Register8::A, value);
+        self.flags.h = 0;
+        self.flags.cy = 0;
+        self.flags.n = 0;
+        if value == 0 {
+            self.flags.z = 1;
+        }else{
+            self.flags.z = 0;
+        }
+    }
+
+    fn cp(&mut self, a: u8, b: u8){
+        let result = a - b;
+        if result == 0 {
+            self.flags.z = 1;
+        } else {
+            self.flags.z = 0;
+        }
+        self.flags.n = 1;
+        if (a & 0xF) < (b & 0xF) {
+            self.flags.h = 1;
+        } else {
+            self.flags.h = 0;
+        }
+        if a < b {
+            self.flags.cy = 1;
+        } else {
+            self.flags.cy = 0;
+        }
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -1005,6 +1039,56 @@ impl CPU {
                 }
                 0xAF => { // XOR A
                     self.xor_a(self.get_register_8(&Register8::A));
+                }
+                0xB0 => { // OR B
+                    self.or_a(self.get_register_8(&Register8::B));
+                }
+                0xB1 => { // OR C
+                    self.or_a(self.get_register_8(&Register8::C));
+                }
+                0xB2 => { // OR D
+                    self.or_a(self.get_register_8(&Register8::D));
+                }
+                0xB3 => { // OR E
+                    self.or_a(self.get_register_8(&Register8::E));
+                }
+                0xB4 => { // OR H
+                    self.or_a(self.get_register_8(&Register8::H));
+                }
+                0xB5 => { // OR L
+                    self.or_a(self.get_register_8(&Register8::L));
+                }
+                0xB6 => { // OR (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.or_a(val);
+                }
+                0xB7 => { // OR A
+                    self.or_a(self.get_register_8(&Register8::A));
+                }
+                0xB8 => { // CP B
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::B));
+                }
+                0xB9 => { // CP C
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::C));
+                }
+                0xBA => { // CP D
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::D));
+                }
+                0xBB => { // CP E
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::E));
+                }
+                0xBC => { // CP H
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::H));
+                }
+                0xBD => { // CP L
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::L));
+                }
+                0xBE => { // CP (HL)
+                    let val = mem.read(self.get_register_16(&Register16::HL));
+                    self.cp(self.get_register_8(&Register8::A), val);
+                }
+                0xBF => { // CP A
+                    self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::A));
                 }
 
                 _ => {
