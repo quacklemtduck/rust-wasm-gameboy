@@ -1180,6 +1180,76 @@ impl CPU {
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x08);
             }
+            0xD0 => { // RET NC
+                if self.flags.cy == 0 {
+                    let value = self.pop(mem);
+                    self.pc = value;
+                }
+            }
+            0xD1 => { // POP DE
+                let value = self.pop(mem);
+                self.set_register_16(&Register16::DE, value);
+            }
+            0xD2 => { // JP NC, a16
+                if self.flags.cy == 0 {
+                    let a16 = mem.read_16(self.pc);
+                    self.pc = a16;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            0xD4 => { // CALL NC, a16
+                if self.flags.cy == 0 {
+                    let next = self.pc + 2;
+                    self.push(mem, next);
+                    self.pc = mem.read_16(self.pc);
+                }
+            }
+            0xD5 => { // PUSH DE
+                let val = self.get_register_16(&Register16::DE);
+                self.push(mem, val);
+            }
+            0xD6 => {
+                let val = mem.read(self.get_register_16(&Register16::PC));
+                self.pc += 1;
+                self.sub_from_a(val);
+            }
+            0xD7 => { // RST 2
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x10);
+            }
+            0xD8 => { // RET C
+                if self.flags.cy == 1 {
+                    let value = self.pop(mem);
+                    self.pc = value;
+                }
+            }
+            // TODO 0xD9 RETI
+            0xDA => { // JP C, a16
+                if self.flags.cy == 1 {
+                    let a16 = mem.read_16(self.pc);
+                    self.pc = a16;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            0xDC => { // CALL C, a16
+                if self.flags.cy == 1 {
+                    let next = self.pc + 2;
+                    self.push(mem, next);
+                    self.pc = mem.read_16(self.pc);
+                }
+
+            }
+            0xDE => { // SBC A, d8
+                let val = mem.read(self.pc);
+                self.pc += 1;
+                self.sbc_from_a(val);
+            }
+            0xDF => { // RST 3
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x18);
+            }
 
             _ => {
                 println!("Unsupported instruction: 0x{:02x}", instruction);
