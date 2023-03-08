@@ -1,10 +1,10 @@
 pub struct Memory {
-    pub mem: [u8; 0xFFFF]
+    pub mem: [u8; 0x10000]
 }
 
 impl Memory {
     pub fn new() -> Memory {
-        return Memory{mem: [0; 0xFFFF] }
+        return Memory{mem: [0; 0x10000] }
     }
 
     pub fn read(&self, loc: u16) -> u8{
@@ -17,10 +17,10 @@ impl Memory {
         return ((high as u16) << 8) | low as u16;
     }
 
-    pub fn read_signed(&self, loc: u16) -> i8 {
-        let val = self.mem[loc as usize];
-        return val as i8;
-    }
+    // pub fn read_signed(&self, loc: u16) -> i8 {
+    //     let val = self.mem[loc as usize];
+    //     return val as i8;
+    // }
 
     pub fn write(&mut self, loc: u16, val: u8){
         self.mem[loc as usize] = val
