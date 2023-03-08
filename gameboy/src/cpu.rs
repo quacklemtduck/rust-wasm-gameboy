@@ -19,6 +19,7 @@ impl CPU {
                 n: 0,
                 h: 0,
                 cy: 0,
+                lower: 0
             },
             bc: Register::new(),
             de: Register::new(),
@@ -1316,6 +1317,33 @@ impl CPU {
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x28);
             }
+            0xF0 => { // LD A, (a8)
+                let a8 = 0xFF00 + (mem.read(self.pc) as u16);
+                let val = mem.read(a8);
+                self.set_register_8(&Register8::A, val);
+            }
+            0xF1 => { // POP AF
+                let val = self.pop(mem);
+                let upper = (val >> 8) as u8;
+                self.set_register_8(&Register8::A, upper);
+                let lower = (val & 0xFF) as u8;
+                self.flags.z = lower>>7;
+                self.flags.n = (lower & 0b01000000) >> 6;
+                self.flags.h = (lower & 0b00100000) >> 5;
+                self.flags.cy = (lower & 0b00010000) >> 4;
+                self.flags.lower = lower & 0x0F;
+            }
+            0xF2 => { // LD A, (C)
+                let addr = 0xFF00 + (self.get_register_8(&Register8::C) as u16);
+                let val = mem.read(addr);
+                self.set_register_8(&Register8::A, val);
+            }
+            // TODO: 0xF3 DI
+            0xF5 => { // PUSH AF
+                let f = ((self.flags.z << 7) | (self.flags.n << 6) | (self.flags.h << 5) | (self.flags.cy << 4) | self.flags.lower) as u16;
+                let val = ((self.get_register_8(&Register8::A) as u16) << 8) | f;
+                self.push(mem, val);
+            }
 
             _ => {
                 println!("Unsupported instruction: 0x{:02x}", instruction);
@@ -1329,7 +1357,8 @@ struct Flags {
     z: u8,
     n: u8,
     h: u8,
-    cy: u8
+    cy: u8,
+    lower: u8,
 }
 
 enum Register8 {
