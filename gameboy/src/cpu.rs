@@ -1250,6 +1250,72 @@ impl CPU {
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x18);
             }
+            0xE0 => { // LD (a8) A
+                let val = self.get_register_8(&Register8::A);
+                let addr = 0xff00 + (mem.read(self.pc) as u16);
+                self.pc += 1;
+                mem.write(addr, val);
+            }
+            0xE1 => { // POP HL
+                let value = self.pop(mem);
+                self.set_register_16(&Register16::HL, value);
+            }
+            0xE2 => { // LD (C), A
+                let val = self.get_register_8(&Register8::A);
+                let addr = 0xff00 + (self.get_register_8(&Register8::C) as u16);
+                mem.write(addr, val);
+            }
+            0xE5 => { // PUSH HL
+                let val = self.get_register_16(&Register16::HL);
+                self.push(mem, val);
+            }
+            0xE6 => { // AND d8
+                let val = mem.read(self.pc);
+                self.pc += 1;
+                self.and_a(val);
+            }
+            0xE7 => { // RST 4
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x20);
+            }
+            0xE8 => { // ADD SP, s8
+                let val = mem.read(self.pc);
+                self.pc += 1;
+                let orig = self.get_register_16(&Register16::SP);
+                let sub = val>>1 == 1;
+                let abs = (if sub {!val + 1} else {val}) as u16;
+                let value = if sub {orig.wrapping_sub(abs)} else {orig.wrapping_add(abs)};
+                self.set_register_16(&Register16::SP, value);
+                self.flags.z = 0;
+                self.flags.n = 0;
+                if (orig & 0xf) + ((val as u16) & 0xf) > 0xf {
+                    self.flags.h = 1;
+                } else {
+                    self.flags.h = 0;
+                }
+                if (orig & 0xff) + ((val as u16) & 0xff) > 0xff {
+                    self.flags.cy = 1;
+                } else {
+                    self.flags.cy = 0;
+                }
+            }
+            0xE9 => { // JP HL
+                self.pc = self.get_register_16(&Register16::HL);
+            }
+            0xEA => { // LD (a16), A
+                let val = self.get_register_8(&Register8::A);
+                let addr = mem.read_16(self.pc);
+                self.pc += 2;
+                mem.write(addr, val);
+            }
+            0xEE => { // XOR d8
+                let val = mem.read(self.pc);
+                self.xor_a(val);
+            }
+            0xEF => { // RST 5
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x28);
+            }
 
             _ => {
                 println!("Unsupported instruction: 0x{:02x}", instruction);
