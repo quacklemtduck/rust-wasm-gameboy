@@ -7,7 +7,8 @@ pub struct CPU {
     de: Register,
     hl: Register,
     sp: u16,
-    pc: u16
+    pc: u16,
+    ime: bool
 }
 
 impl CPU {
@@ -25,7 +26,8 @@ impl CPU {
             de: Register::new(),
             hl: Register::new(),
             sp: 0,
-            pc: 0
+            pc: 0,
+            ime: false
         }
     }
 
@@ -1225,7 +1227,11 @@ impl CPU {
                     self.pc = value;
                 }
             }
-            // TODO 0xD9 RETI
+            0xD9 => { // RETI
+                self.ime = true;
+                let value = self.pop(mem);
+                self.pc = value;
+            }
             0xDA => { // JP C, a16
                 if self.flags.cy == 1 {
                     let a16 = mem.read_16(self.pc);
@@ -1283,18 +1289,18 @@ impl CPU {
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 let orig = self.get_register_16(&Register16::SP);
-                let sub = val>>1 == 1;
+                let sub = val & 0x80 != 0;
                 let abs = (if sub {!val + 1} else {val}) as u16;
                 let value = if sub {orig.wrapping_sub(abs)} else {orig.wrapping_add(abs)};
                 self.set_register_16(&Register16::SP, value);
                 self.flags.z = 0;
                 self.flags.n = 0;
-                if (orig & 0xf) + ((val as u16) & 0xf) > 0xf {
+                if (orig & 0xff) + ((val as u16) & 0xff) > 0xff {
                     self.flags.h = 1;
                 } else {
                     self.flags.h = 0;
                 }
-                if (orig & 0xff) + ((val as u16) & 0xff) > 0xff {
+                if (orig as u32) + (val as u32) > 0xffff {
                     self.flags.cy = 1;
                 } else {
                     self.flags.cy = 0;
@@ -1338,11 +1344,65 @@ impl CPU {
                 let val = mem.read(addr);
                 self.set_register_8(&Register8::A, val);
             }
-            // TODO: 0xF3 DI
+            0xF3 => { // DI
+                self.ime = false;
+            }
             0xF5 => { // PUSH AF
                 let f = ((self.flags.z << 7) | (self.flags.n << 6) | (self.flags.h << 5) | (self.flags.cy << 4) | self.flags.lower) as u16;
                 let val = ((self.get_register_8(&Register8::A) as u16) << 8) | f;
                 self.push(mem, val);
+            }
+            0xF6 => { // OR d8
+                let val = mem.read(self.pc);
+                self.pc += 1;
+                self.or_a(val);
+            }
+            0xF7 => { // RST 6
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x30);
+            }
+            0xF8 => { // LD HL, SP+s8
+                let orig = self.get_register_16(&Register16::SP);
+                let s8 = mem.read(self.pc);
+                self.pc += 1;
+                let sub = s8 & 0x80 != 0;
+                let abs = (if sub {!s8 + 1} else {s8}) as u16;
+                let value = if sub {orig.wrapping_sub(abs)} else {orig.wrapping_add(abs)};
+                self.set_register_16(&Register16::HL, value);
+                self.flags.z = 0;
+                self.flags.n = 0;
+                if (orig & 0xff) + ((s8 as u16) & 0xff) > 0xff {
+                    self.flags.h = 1;
+                } else {
+                    self.flags.h = 0;
+                }
+                if (orig as u32) + (s8 as u32) > 0xffff {
+                    self.flags.cy = 1;
+                } else {
+                    self.flags.cy = 0;
+                }
+            }
+            0xF9 => { // LD SP, HL
+                let val = self.get_register_16(&Register16::HL);
+                self.set_register_16(&Register16::SP, val);
+            }
+            0xFA => { // LD A, (a16)
+                let addr = mem.read_16(self.pc);
+                self.pc += 2;
+                let val = mem.read(addr);
+                self.set_register_8(&Register8::A, val);
+            }
+            0xFB => { // EI
+                self.ime = true;
+            }
+            0xFE => { // CP d8
+                let val = mem.read(self.pc);
+                self.pc += 1;
+                self.cp(self.get_register_8(&Register8::A), val);
+            }
+            0xFF => { // RST 7
+                self.push(mem, self.get_register_16(&Register16::PC));
+                self.set_register_16(&Register16::PC, 0x38);
             }
 
             _ => {
