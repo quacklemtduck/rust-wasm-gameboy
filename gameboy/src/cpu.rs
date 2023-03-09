@@ -460,12 +460,32 @@ impl CPU {
         self.flags.h = 0;
     }
 
-    fn sr(&mut self, reg: &Register8) {
+    fn sra(&mut self, reg: &Register8) {
         let orig = self.get_register_8(reg);
         let val = (orig >> 1) | (orig & 0x80);
         self.set_register_8(reg, val);
         self.flags.cy = val & 0x01;
         self.flags.z = if val == 0 {1} else {0};
+        self.flags.n = 0;
+        self.flags.h = 0;
+    }
+
+    fn srl(&mut self, reg: &Register8) {
+        let orig = self.get_register_8(reg);
+        let val = orig >> 1;
+        self.set_register_8(reg, val);
+        self.flags.cy = val & 0x01;
+        self.flags.z = if val == 0 {1} else {0};
+        self.flags.n = 0;
+        self.flags.h = 0;
+    }
+
+    fn swap(&mut self, reg: &Register8) {
+        let orig = self.get_register_8(reg);
+        let value = (orig << 4) | (orig >> 4);
+        self.set_register_8(reg, value);
+        self.flags.z = if value == 0 {1} else {0};
+        self.flags.cy = 0;
         self.flags.n = 0;
         self.flags.h = 0;
     }
@@ -1629,22 +1649,22 @@ impl CPU {
                 self.sl(&Register8::A);
             }
             0x28 => { // SRA B
-                self.sr(&Register8::B);
+                self.sra(&Register8::B);
             }
             0x29 => { // SRA C
-                self.sr(&Register8::C);
+                self.sra(&Register8::C);
             }
             0x2A => { // SRA D
-                self.sr(&Register8::D);
+                self.sra(&Register8::D);
             }
             0x2B => { // SRA E
-                self.sr(&Register8::E);
+                self.sra(&Register8::E);
             }
             0x2C => { // SRA H
-                self.sr(&Register8::H);
+                self.sra(&Register8::H);
             }
             0x2D => { // SRA L
-                self.sr(&Register8::L);
+                self.sra(&Register8::L);
             }
             0x2E => { // SRA (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1657,7 +1677,69 @@ impl CPU {
                 self.flags.h = 0;
             }
             0x2F => { // SRA A
-                self.sr(&Register8::A);
+                self.sra(&Register8::A);
+            }
+            0x30 => { // SWAP B
+                self.swap(&Register8::B);
+            }
+            0x31 => { // SWAP C
+                self.swap(&Register8::C);
+            }
+            0x32 => { // SWAP D
+                self.swap(&Register8::D);
+            }
+            0x33 => { // SWAP E
+                self.swap(&Register8::E);
+            }
+            0x34 => { // SWAP H
+                self.swap(&Register8::H);
+            }
+            0x35 => { // SWAP L
+                self.swap(&Register8::L);
+            }
+            0x36 => { // SWAP (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let value = (orig << 4) | (orig >> 4);
+                mem.write(addr,value);
+                self.flags.z = if value == 0 {1} else {0};
+                self.flags.cy = 0;
+                self.flags.n = 0;
+                self.flags.h = 0;
+            }
+            0x37 => { // SWAP A
+                self.swap(&Register8::A);
+            }
+            0x38 => { // SRL B
+                self.srl(&Register8::B);
+            }
+            0x39 => { // SRL C
+                self.srl(&Register8::C);
+            }
+            0x3A => { // SRL D
+                self.srl(&Register8::D);
+            }
+            0x3B => { // SRL E
+                self.srl(&Register8::E);
+            }
+            0x3C => { // SRL H
+                self.srl(&Register8::H);
+            }
+            0x3D => { // SRL L
+                self.srl(&Register8::L);
+            }
+            0x3E => { // SRL (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let val = orig >> 1;
+                mem.write(addr,val);
+                self.flags.cy = val & 0x01;
+                self.flags.z = if val == 0 {1} else {0};
+                self.flags.n = 0;
+                self.flags.h = 0;
+            }
+            0x3F => { // SRL A
+                self.srl(&Register8::A);
             }
 
             _ => {
