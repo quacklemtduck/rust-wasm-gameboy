@@ -480,6 +480,17 @@ impl CPU {
         self.flags.h = 0;
     }
 
+    fn bit(&mut self, reg: &Register8, bit: u8) {
+        let val = self.get_register_8(reg);
+        self.flags.z = if (val & (1 << bit)) != 0 {1} else {0};
+        self.flags.n = 0;
+        self.flags.h = 1;
+    }
+
+    fn res(&mut self, reg: Register8, bit: u8) {
+
+    }
+
     fn swap(&mut self, reg: &Register8) {
         let orig = self.get_register_8(reg);
         let value = (orig << 4) | (orig >> 4);
@@ -1741,6 +1752,36 @@ impl CPU {
             0x3F => { // SRL A
                 self.srl(&Register8::A);
             }
+            0x40 | 0x48 | 0x50 | 0x58 | 0x60 | 0x68 | 0x70 | 0x78 => { // BIT B
+                self.bit(&Register8::B, (instruction - 0x40) / 0x08);
+            }
+            0x41 | 0x49 | 0x51 | 0x59 | 0x61 | 0x69 | 0x71 | 0x79 => { // BIT C
+                self.bit(&Register8::C, (instruction - 0x41) / 0x08);
+            }
+            0x42 | 0x4A | 0x52 | 0x5A | 0x62 | 0x6A | 0x72 | 0x7A => { // BIT D
+                self.bit(&Register8::D, (instruction - 0x42) / 0x08);
+            }
+            0x43 | 0x4B | 0x53 | 0x5B | 0x63 | 0x6B | 0x73 | 0x7B => { // BIT E
+                self.bit(&Register8::E, (instruction - 0x43) / 0x08);
+            }
+            0x44 | 0x4C | 0x54 | 0x5C | 0x64 | 0x6C | 0x74 | 0x7C => { // BIT H
+                self.bit(&Register8::H, (instruction - 0x44) / 0x08);
+            }
+            0x45 | 0x4D | 0x55 | 0x5D | 0x65 | 0x6D | 0x75 | 0x7D => { // BIT L
+                self.bit(&Register8::L, (instruction - 0x45) / 0x08);
+            }
+            0x46 | 0x4E | 0x56 | 0x5E | 0x66 | 0x6E | 0x76 | 0x7E => { // BIT (HL)
+                let bit = (instruction - 0x46) / 0x08;
+                let addr = self.get_register_16(&Register16::HL);
+                let val = mem.read(addr);
+                self.flags.z = if (val & (1 << bit)) != 0 {1} else {0};
+                self.flags.n = 0;
+                self.flags.h = 1;
+            }
+            0x47 | 0x4F | 0x57 | 0x5F | 0x67 | 0x6F | 0x77 | 0x7F => { // BIT A
+                self.bit(&Register8::A, (instruction - 0x47) / 0x08);
+            }
+
 
             _ => {
                 println!("Unsupported instruction: 0xCB{:02x}", instruction);
