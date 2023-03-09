@@ -391,6 +391,36 @@ impl CPU {
         self.set_register_16(&Register16::SP, addr);
     }
 
+    fn set_interrupt(&mut self, value: bool){
+        self.ime = value;
+    }
+
+    fn rlc(&mut self, reg: &Register8, check_z: bool) {
+        let value = self.get_register_8(reg).rotate_left(1);
+        self.set_register_8(reg, value);
+        self.flags.cy = value & 0x01;
+        self.flags.h = 0;
+        if check_z {
+            self.flags.z = if value == 0 {1} else {0};
+        } else {
+            self.flags.z = 0;
+        }
+        self.flags.n = 0;
+    }
+
+    fn rrc(&mut self, reg: &Register8, check_z: bool){
+        let value = self.get_register_8(reg).rotate_right(1);
+        self.set_register_8(reg, value);
+        self.flags.cy = (value>>7) & 0x01;
+        self.flags.h = 0;
+        if check_z {
+            self.flags.z = if value == 0 {1} else {0};
+        } else {
+            self.flags.z = 0;
+        }
+        self.flags.n = 0;
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -420,12 +450,7 @@ impl CPU {
                 self.set_register_8(&Register8::B, d8);
             }
             0x07 => { // RLCA
-                let value = self.get_register_8(&Register8::A).rotate_left(1);
-                self.set_register_8(&Register8::A, value);
-                self.flags.cy = value & 0x01;
-                self.flags.h = 0;
-                self.flags.z = 0;
-                self.flags.n = 0;
+                self.rlc(&Register8::A, false);
             }
             0x08 => { // LD (a16), SP
                 let a16 = mem.read_16(self.pc);
@@ -454,12 +479,7 @@ impl CPU {
                 self.set_register_8(&Register8::C, d8);
             }
             0x0F => { // RRCA
-                let value = self.get_register_8(&Register8::A).rotate_right(1);
-                self.set_register_8(&Register8::A, value);
-                self.flags.cy = value >> 7;
-                self.flags.h = 0;
-                self.flags.z = 0;
-                self.flags.n = 0;
+                self.rrc(&Register8::A, false);
             }
             // TODO 0x10 STOP
             0x11 => { // LD DE, d16
@@ -1161,7 +1181,9 @@ impl CPU {
                     self.pc += 2;
                 }
             }
-            // TODO 0xCB instructions
+            0xCB => { // 16-bit opcodes
+                self.op_16(mem)
+            }
             0xCC => { // CALL Z, a16
                 if self.flags.z == 1 {
                     let next = self.pc + 2;
@@ -1212,7 +1234,7 @@ impl CPU {
                 let val = self.get_register_16(&Register16::DE);
                 self.push(mem, val);
             }
-            0xD6 => {
+            0xD6 => { // SUB d8
                 let val = mem.read(self.get_register_16(&Register16::PC));
                 self.pc += 1;
                 self.sub_from_a(val);
@@ -1228,7 +1250,7 @@ impl CPU {
                 }
             }
             0xD9 => { // RETI
-                self.ime = true;
+                self.set_interrupt(true);
                 let value = self.pop(mem);
                 self.pc = value;
             }
@@ -1345,7 +1367,7 @@ impl CPU {
                 self.set_register_8(&Register8::A, val);
             }
             0xF3 => { // DI
-                self.ime = false;
+                self.set_interrupt(false);
             }
             0xF5 => { // PUSH AF
                 let f = ((self.flags.z << 7) | (self.flags.n << 6) | (self.flags.h << 5) | (self.flags.cy << 4) | self.flags.lower) as u16;
@@ -1393,7 +1415,7 @@ impl CPU {
                 self.set_register_8(&Register8::A, val);
             }
             0xFB => { // EI
-                self.ime = true;
+                self.set_interrupt(true);
             }
             0xFE => { // CP d8
                 let val = mem.read(self.pc);
@@ -1410,6 +1432,79 @@ impl CPU {
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
             }
         }
+    }
+
+    fn op_16(&mut self, mem: &mut Memory) {
+        let instruction = mem.read(self.pc);
+        self.pc += 1;
+        match instruction {
+            0x00 => { // RLC B
+                self.rlc(&Register8::B, true);
+            }
+            0x01 => { // RLC C
+                self.rlc(&Register8::C, true);
+            }
+            0x02 => { // RLC D
+                self.rlc(&Register8::D, true);
+            }
+            0x03 => { // RLC E
+                self.rlc(&Register8::E, true);
+            }
+            0x04 => { // RLC H
+                self.rlc(&Register8::H, true);
+            }
+            0x05 => { // RLC L
+                self.rlc(&Register8::L, true);
+            }
+            0x06 => { // RLC (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let value = mem.read(addr).rotate_left(1);
+                mem.write(addr, value);
+                self.flags.cy = value & 0x01;
+                self.flags.h = 0;
+                self.flags.z = if value == 0 {1} else {0};
+                self.flags.n = 0;
+            }
+            0x07 => { // RLC A
+                self.rlc(&Register8::A, true);
+            }
+            0x08 => { // RRC B
+                self.rrc(&Register8::B, true);
+            }
+            0x09 => { // RRC C
+                self.rrc(&Register8::C, true);
+            }
+            0x0A => { // RRC D
+                self.rrc(&Register8::D, true);
+            }
+            0x0B => { // RRC E
+                self.rrc(&Register8::E, true);
+            }
+            0x0C => { // RRC H
+                self.rrc(&Register8::H, true);
+            }
+            0x0D => { // RRC L
+                self.rrc(&Register8::L, true);
+            }
+            0x0E => { // RRC (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let value = mem.read(addr).rotate_right(1);
+                mem.write(addr, value);
+                self.flags.cy = (value>>7) & 0x01;
+                self.flags.h = 0;
+                self.flags.z = if value == 0 {1} else {0};
+                self.flags.n = 0;
+            }
+            0x0F => { // RRC A
+                self.rrc(&Register8::A, true);
+            }
+
+            _ => {
+                println!("Unsupported instruction: 0xCB{:02x}", instruction);
+                panic!("Unsupported instruction: 0xCB{:02x}", instruction);
+            }
+        }
+
     }
 }
 
