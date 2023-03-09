@@ -408,10 +408,40 @@ impl CPU {
         self.flags.n = 0;
     }
 
+    fn rl(&mut self, reg: &Register8, check_z: bool) {
+        let orig = self.get_register_8(reg);
+        let mut value = orig << 1;
+        value = value | self.flags.cy;
+        self.flags.cy = orig >> 7;
+        self.set_register_8(reg, value);
+        self.flags.h = 0;
+        if check_z {
+            self.flags.z = if value == 0 {1} else {0};
+        } else {
+            self.flags.z = 0;
+        }
+        self.flags.n = 0;
+    }
+
     fn rrc(&mut self, reg: &Register8, check_z: bool){
         let value = self.get_register_8(reg).rotate_right(1);
         self.set_register_8(reg, value);
         self.flags.cy = (value>>7) & 0x01;
+        self.flags.h = 0;
+        if check_z {
+            self.flags.z = if value == 0 {1} else {0};
+        } else {
+            self.flags.z = 0;
+        }
+        self.flags.n = 0;
+    }
+
+    fn rr(&mut self, reg: &Register8, check_z: bool){
+        let orig = self.get_register_8(reg);
+        let mut value = orig >> 1;
+        value = (value & 0b01111111) | (self.flags.cy << 7);
+        self.flags.cy = orig & 0x01;
+        self.set_register_8(reg, value);
         self.flags.h = 0;
         if check_z {
             self.flags.z = if value == 0 {1} else {0};
@@ -505,14 +535,7 @@ impl CPU {
                 self.set_register_8(&Register8::D, d8);
             }
             0x17 => { // RLA
-                let orig = self.get_register_8(&Register8::A);
-                let mut value = orig << 1;
-                value = value | self.flags.cy;
-                self.flags.cy = orig >> 7;
-                self.set_register_8(&Register8::A, value);
-                self.flags.h = 0;
-                self.flags.z = 0;
-                self.flags.n = 0;
+                self.rl(&Register8::A, false);
             }
             0x18 => { // JR s8
                 let s8 = mem.read(self.pc);
@@ -541,14 +564,7 @@ impl CPU {
                 self.set_register_8(&Register8::E, d8);
             }
             0x1F => { // RRA
-                let orig = self.get_register_8(&Register8::A);
-                let mut value = orig >> 1;
-                value = (value & 0b01111111) | (self.flags.cy << 7);
-                self.flags.cy = orig & 0x01;
-                self.set_register_8(&Register8::A, value);
-                self.flags.h = 0;
-                self.flags.z = 0;
-                self.flags.n = 0;
+                self.rr(&Register8::A, false);
             }
             0x20 => { // JR NZ, s8
                 let s8 = mem.read(self.pc);
@@ -1490,13 +1506,77 @@ impl CPU {
                 let addr = self.get_register_16(&Register16::HL);
                 let value = mem.read(addr).rotate_right(1);
                 mem.write(addr, value);
-                self.flags.cy = (value>>7) & 0x01;
+                self.flags.cy = value>>7;
                 self.flags.h = 0;
                 self.flags.z = if value == 0 {1} else {0};
                 self.flags.n = 0;
             }
             0x0F => { // RRC A
                 self.rrc(&Register8::A, true);
+            }
+            0x10 => { // RL B
+                self.rl(&Register8::B, true);
+            }
+            0x11 => { // RL C
+                self.rl(&Register8::C, true);
+            }
+            0x12 => { // RL D
+                self.rl(&Register8::D, true);
+            }
+            0x13 => { // RL E
+                self.rl(&Register8::E, true);
+            }
+            0x14 => { // RL H
+                self.rl(&Register8::H, true);
+            }
+            0x15 => { // RL L
+                self.rl(&Register8::L, true);
+            }
+            0x16 => { // RL (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let mut value = orig << 1;
+                value = value | self.flags.cy;
+                self.flags.cy = orig >> 7;
+                mem.write(addr, value);
+                self.flags.h = 0;
+                self.flags.z = if value == 0 {1} else {0};
+                self.flags.n = 0;
+            }
+            0x17 => { // RL A
+                self.rl(&Register8::A, true);
+            }
+            0x18 => { // RR B
+                self.rr(&Register8::B, true);
+            }
+            0x19 => { // RR C
+                self.rr(&Register8::C, true);
+            }
+            0x1A => { // RR D
+                self.rr(&Register8::D, true);
+            }
+            0x1B => { // RR E
+                self.rr(&Register8::E, true);
+            }
+            0x1C => { // RR H
+                self.rr(&Register8::H, true);
+            }
+            0x1D => { // RR L
+                self.rr(&Register8::L, true);
+            }
+            0x1E => { // RR (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let mut value = orig >> 1;
+                value = (value & 0b01111111) | (self.flags.cy << 7);
+                self.flags.cy = orig & 0x01;
+                mem.write(addr, value);
+                self.flags.h = 0;
+                self.flags.z = if value == 0 {1} else {0};
+                self.flags.n = 0;
+            }
+            0x1F => { // RR A
+                self.rr(&Register8::A, true);
             }
 
             _ => {
