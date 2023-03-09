@@ -487,8 +487,16 @@ impl CPU {
         self.flags.h = 1;
     }
 
-    fn res(&mut self, reg: Register8, bit: u8) {
+    fn res(&mut self, reg: &Register8, bit: u8) {
+        let orig = self.get_register_8(reg);
+        let val = orig & !(1 << bit);
+        self.set_register_8(reg, val);
+    }
 
+    fn set(&mut self, reg: &Register8, bit: u8) {
+        let orig = self.get_register_8(reg);
+        let val = orig | (1 << bit);
+        self.set_register_8(reg, val);
     }
 
     fn swap(&mut self, reg: &Register8) {
@@ -1781,7 +1789,62 @@ impl CPU {
             0x47 | 0x4F | 0x57 | 0x5F | 0x67 | 0x6F | 0x77 | 0x7F => { // BIT A
                 self.bit(&Register8::A, (instruction - 0x47) / 0x08);
             }
-
+            0x80 | 0x88 | 0x90 | 0x98 | 0xA0 | 0xA8 | 0xB0 | 0xB8 => { // RES B
+                self.res(&Register8::B, (instruction - 0x80) / 0x08);
+            }
+            0x81 | 0x89 | 0x91 | 0x99 | 0xA1 | 0xA9 | 0xB1 | 0xB9 => { // RES C
+                self.res(&Register8::C, (instruction - 0x81) / 0x08);
+            }
+            0x82 | 0x8A | 0x92 | 0x9A | 0xA2 | 0xAA | 0xB2 | 0xBA => { // RES D
+                self.res(&Register8::D, (instruction - 0x82) / 0x08);
+            }
+            0x83 | 0x8B | 0x93 | 0x9B | 0xA3 | 0xAB | 0xB3 | 0xBB => { // RES E
+                self.res(&Register8::E, (instruction - 0x83) / 0x08);
+            }
+            0x84 | 0x8C | 0x94 | 0x9C | 0xA4 | 0xAC | 0xB4 | 0xBC => { // RES H
+                self.res(&Register8::H, (instruction - 0x84) / 0x08);
+            }
+            0x85 | 0x8D | 0x95 | 0x9D | 0xA5 | 0xAD | 0xB5 | 0xBD => { // RES L
+                self.res(&Register8::L, (instruction - 0x85) / 0x08);
+            }
+            0x86 | 0x8E | 0x96 | 0x9E | 0xA6 | 0xAE | 0xB6 | 0xBE => { // RES (HL)
+                let bit = (instruction - 0x86) / 0x08;
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let val = orig & !(1 << bit);
+                mem.write(addr,val);
+            }
+            0x87 | 0x8F | 0x97 | 0x9F | 0xA7 | 0xAF | 0xB7 | 0xBF => { // RES A
+                self.res(&Register8::A, (instruction - 0x87) / 0x08);
+            }
+            0xC0 | 0xC8 | 0xD0 | 0xD8 | 0xE0 | 0xE8 | 0xF0 | 0xF8 => { // SET B
+                self.set(&Register8::B, (instruction - 0xC0) / 0x08);
+            }
+            0xC1 | 0xC9 | 0xD1 | 0xD9 | 0xE1 | 0xE9 | 0xF1 | 0xF9 => { // SET C
+                self.set(&Register8::C, (instruction - 0xC1) / 0x08);
+            }
+            0xC2 | 0xCA | 0xD2 | 0xDA | 0xE2 | 0xEA | 0xF2 | 0xFA => { // SET D
+                self.set(&Register8::D, (instruction - 0xC2) / 0x08);
+            }
+            0xC3 | 0xCB | 0xD3 | 0xDB | 0xE3 | 0xEB | 0xF3 | 0xFB => { // SET E
+                self.set(&Register8::E, (instruction - 0xC3) / 0x08);
+            }
+            0xC4 | 0xCC | 0xD4 | 0xDC | 0xE4 | 0xEC | 0xF4 | 0xFC => { // SET H
+                self.set(&Register8::H, (instruction - 0xC4) / 0x08);
+            }
+            0xC5 | 0xCD | 0xD5 | 0xDD | 0xE5 | 0xED | 0xF5 | 0xFD => { // SET L
+                self.set(&Register8::L, (instruction - 0xC5) / 0x08);
+            }
+            0xC6 | 0xCE | 0xD6 | 0xDE | 0xE6 | 0xEE | 0xF6 | 0xFE => { // SET (HL)
+                let bit = (instruction - 0xC6) / 0x08;
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let val = orig | (1 << bit);
+                mem.write(addr,val);
+            }
+            0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => { // SET A
+                self.set(&Register8::A, (instruction - 0xC7) / 0x08);
+            }
 
             _ => {
                 println!("Unsupported instruction: 0xCB{:02x}", instruction);
@@ -1844,7 +1907,7 @@ impl SubRegister {
 
 #[cfg(test)]
 mod cpu_tests {
-    use crate::cpu::{CPU, Register, Register16};
+    use crate::cpu::{CPU, Register, Register16, Register8};
     use crate::memory::Memory;
 
     #[test]
@@ -1960,5 +2023,74 @@ mod cpu_tests {
             assert_eq!(cpu.get_register_16(&Register16::BC), 5);
             cpu.run(&mut mem);
             assert_eq!(cpu.get_register_16(&Register16::BC), 99);
+    }
+
+    #[test]
+    fn cpu_res() {
+        let mut mem = Memory::new();
+        let mut cpu = CPU::new();
+        cpu.set_register_8(&Register8::B, 0b00100000);
+        cpu.set_register_8(&Register8::C, 0b00100000);
+        cpu.set_register_8(&Register8::D, 0b00100000);
+        cpu.set_register_8(&Register8::E, 0b00100000);
+        cpu.set_register_8(&Register8::H, 0b00100000);
+        cpu.set_register_8(&Register8::L, 0b00100000);
+        cpu.set_register_8(&Register8::A, 0b00100000);
+        mem.write(0, 0xCB);
+        mem.write(1, 0xA8);
+        mem.write(2, 0xCB);
+        mem.write(3, 0xA9);
+        mem.write(4, 0xCB);
+        mem.write(5, 0xAA);
+        mem.write(6, 0xCB);
+        mem.write(7, 0xAB);
+        mem.write(8, 0xCB);
+        mem.write(9, 0xAC);
+        mem.write(10, 0xCB);
+        mem.write(11, 0xAD);
+        mem.write(12, 0xCB);
+        mem.write(13, 0xAF);
+        for _ in 0..=6 {
+            cpu.run(&mut mem);
+        }
+
+        assert_eq!(cpu.get_register_8(&Register8::B), 0);
+        assert_eq!(cpu.get_register_8(&Register8::C), 0);
+        assert_eq!(cpu.get_register_8(&Register8::D), 0);
+        assert_eq!(cpu.get_register_8(&Register8::E), 0);
+        assert_eq!(cpu.get_register_8(&Register8::H), 0);
+        assert_eq!(cpu.get_register_8(&Register8::L), 0);
+        assert_eq!(cpu.get_register_8(&Register8::A), 0);
+    }
+
+    #[test]
+    fn cpu_set() {
+        let mut mem = Memory::new();
+        let mut cpu = CPU::new();
+        mem.write(0, 0xCB);
+        mem.write(1, 0xF8);
+        mem.write(2, 0xCB);
+        mem.write(3, 0xF9);
+        mem.write(4, 0xCB);
+        mem.write(5, 0xFA);
+        mem.write(6, 0xCB);
+        mem.write(7, 0xFB);
+        mem.write(8, 0xCB);
+        mem.write(9, 0xFC);
+        mem.write(10, 0xCB);
+        mem.write(11, 0xFD);
+        mem.write(12, 0xCB);
+        mem.write(13, 0xFF);
+        for _ in 0..=6 {
+            cpu.run(&mut mem);
+        }
+
+        assert_eq!(cpu.get_register_8(&Register8::B), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::C), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::D), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::E), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::H), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::L), 0x80);
+        assert_eq!(cpu.get_register_8(&Register8::A), 0x80);
     }
 }
