@@ -451,6 +451,25 @@ impl CPU {
         self.flags.n = 0;
     }
 
+    fn sl(&mut self, reg: &Register8) {
+        let val = self.get_register_8(reg) << 1;
+        self.set_register_8(reg, val);
+        self.flags.cy = val >> 7;
+        self.flags.z = if val == 0 {1} else {0};
+        self.flags.n = 0;
+        self.flags.h = 0;
+    }
+
+    fn sr(&mut self, reg: &Register8) {
+        let orig = self.get_register_8(reg);
+        let val = (orig >> 1) | (orig & 0x80);
+        self.set_register_8(reg, val);
+        self.flags.cy = val & 0x01;
+        self.flags.z = if val == 0 {1} else {0};
+        self.flags.n = 0;
+        self.flags.h = 0;
+    }
+
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -1577,6 +1596,68 @@ impl CPU {
             }
             0x1F => { // RR A
                 self.rr(&Register8::A, true);
+            }
+            0x20 => { // SLA B
+                self.sl(&Register8::B);
+            }
+            0x21 => { // SLA C
+                self.sl(&Register8::C);
+            }
+            0x22 => { // SLA D
+                self.sl(&Register8::D);
+            }
+            0x23 => { // SLA E
+                self.sl(&Register8::E);
+            }
+            0x24 => { // SLA H
+                self.sl(&Register8::H);
+            }
+            0x25 => { // SLA L
+                self.sl(&Register8::L);
+            }
+            0x26 => { // SLA (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let val = orig << 1;
+                mem.write(addr,val);
+                self.flags.cy = val >> 7;
+                self.flags.z = if val == 0 {1} else {0};
+                self.flags.n = 0;
+                self.flags.h = 0;
+            }
+            0x27 => { // SLA A
+                self.sl(&Register8::A);
+            }
+            0x28 => { // SRA B
+                self.sr(&Register8::B);
+            }
+            0x29 => { // SRA C
+                self.sr(&Register8::C);
+            }
+            0x2A => { // SRA D
+                self.sr(&Register8::D);
+            }
+            0x2B => { // SRA E
+                self.sr(&Register8::E);
+            }
+            0x2C => { // SRA H
+                self.sr(&Register8::H);
+            }
+            0x2D => { // SRA L
+                self.sr(&Register8::L);
+            }
+            0x2E => { // SRA (HL)
+                let addr = self.get_register_16(&Register16::HL);
+                let orig = mem.read(addr);
+                let val = (orig >> 1) | (orig & 0x80);
+                mem.write(addr,val);
+                self.flags.cy = val & 0x01;
+                self.flags.z = if val == 0 {1} else {0};
+                self.flags.n = 0;
+                self.flags.h = 0;
+            }
+            0x2F => { // SRA A
+                self.sr(&Register8::A);
             }
 
             _ => {
