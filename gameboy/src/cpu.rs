@@ -31,6 +31,16 @@ impl CPU {
         }
     }
 
+    pub fn print(&self) {
+        println!("A: 0x{:02x}",  self.a);
+        println!("B: 0x{:02x} C: 0x{:02x}", self.get_register_8(&Register8::B), self.get_register_8(&Register8::C));
+        println!("D: 0x{:02x} E: 0x{:02x}", self.get_register_8(&Register8::D), self.get_register_8(&Register8::E));
+        println!("H: 0x{:02x} L: 0x{:02x}", self.get_register_8(&Register8::H), self.get_register_8(&Register8::L));
+        println!("Flags: {:?}", self.flags);
+        println!("SP: {:#x} PC: {:#x}", self.sp, self.pc);
+        println!("IME: {}", self.ime);
+    }
+
     pub fn simulate_bootloader(&mut self) {
         self.a = 0x01;
         self.bc.sub.high = 0;
@@ -359,8 +369,7 @@ impl CPU {
     }
 
     fn cp(&mut self, a: u8, b: u8){
-        let result = a - b;
-        if result == 0 {
+        if a == b {
             self.flags.z = 1;
         } else {
             self.flags.z = 0;
@@ -512,6 +521,9 @@ impl CPU {
     pub fn run(&mut self, mem: &mut Memory){
         let instruction = mem.read(self.pc);
         self.pc += 1;
+
+        println!("Running instruction: 0x{:02x}", instruction);
+
         match instruction {
             0x00 => {} // NOP
             0x01 => { // LD BC, d16
@@ -1851,10 +1863,10 @@ impl CPU {
                 panic!("Unsupported instruction: 0xCB{:02x}", instruction);
             }
         }
-
     }
 }
 
+#[derive(Debug)]
 struct Flags {
     z: u8,
     n: u8,
@@ -1926,7 +1938,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_noop() {
-        let mut mem = Memory::new();
+        let mut mem = Memory::new(None);
         let mut cpu = CPU::new();
         cpu.run(&mut mem);
     }
@@ -1934,7 +1946,7 @@ mod cpu_tests {
     #[test]
     fn cpu_inc_b() {
         unsafe {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.bc.sub.high = 0xff;
             mem.write(0, 0x04);
@@ -1947,7 +1959,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_rlca() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.a = 0x01 << 7;
             mem.write(0, 0x07);
@@ -1959,7 +1971,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_rrca() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.a = 0x01;
             mem.write(0, 0x0F);
@@ -1971,7 +1983,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_rla() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.a = 0x01 << 7;
             mem.write(0, 0x17);
@@ -1983,7 +1995,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_rra() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.a = 0x01;
             mem.write(0, 0x1F);
@@ -1995,7 +2007,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_jr() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             mem.write(0, 0x18);
             mem.write(1, 0b11111110);
@@ -2011,7 +2023,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_push_pop() {
-            let mut mem = Memory::new();
+            let mut mem = Memory::new(None);
             let mut cpu = CPU::new();
             cpu.simulate_bootloader();
             mem.simulate_bootloader();
@@ -2027,7 +2039,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_res() {
-        let mut mem = Memory::new();
+        let mut mem = Memory::new(None);
         let mut cpu = CPU::new();
         cpu.set_register_8(&Register8::B, 0b00100000);
         cpu.set_register_8(&Register8::C, 0b00100000);
@@ -2065,7 +2077,7 @@ mod cpu_tests {
 
     #[test]
     fn cpu_set() {
-        let mut mem = Memory::new();
+        let mut mem = Memory::new(None);
         let mut cpu = CPU::new();
         mem.write(0, 0xCB);
         mem.write(1, 0xF8);

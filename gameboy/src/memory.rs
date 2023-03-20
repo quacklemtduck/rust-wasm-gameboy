@@ -1,14 +1,28 @@
+use crate::cartridge::Cartridge;
+
 pub struct Memory {
-    pub mem: [u8; 0x10000]
+    pub mem: [u8; 0x10000],
+    pub cart: Cartridge,
 }
 
 impl Memory {
-    pub fn new() -> Memory {
-        return Memory{mem: [0; 0x10000] }
+    pub fn new(cart: Option<Cartridge>) -> Memory {
+        let c: Cartridge = match cart {
+            None => Cartridge::New(vec![0; 1024 * 32]),
+            Some(x) => x
+        };
+        return Memory{mem: [0; 0x10000], cart: c }
     }
 
     pub fn read(&self, loc: u16) -> u8{
-        return self.mem[loc as usize]
+        let mut v;
+        if loc < 8000 {
+            v = self.cart.read(loc);
+        } else {
+            v = self.mem[loc as usize]
+        }
+        println!("Read: 0x{:02x}", v);
+        return v
     }
 
     pub fn read_16(&self, loc: u16) -> u16 {
@@ -23,6 +37,10 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
+        if loc < 8000 {
+            self.cart.write(loc, val);
+            return
+        }
         self.mem[loc as usize] = val
     }
 
