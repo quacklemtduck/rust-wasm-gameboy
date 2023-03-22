@@ -522,7 +522,7 @@ impl CPU {
         let instruction = mem.read(self.pc);
         self.pc += 1;
 
-        println!("Running instruction: 0x{:02x}", instruction);
+        println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} DE: {:#x}", instruction, self.pc - 1, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::DE));
 
         match instruction {
             0x00 => {} // NOP
@@ -717,7 +717,7 @@ impl CPU {
                 self.add_hl(&Register16::HL);
             }
             0x2A => { // LD A, (HL+)
-                let val = mem.read(self.get_register_16(&Register16::DE));
+                let val = mem.read(self.get_register_16(&Register16::HL));
                 self.a = val;
                 self.inc_register_16(&Register16::HL);
             }
@@ -1433,6 +1433,7 @@ impl CPU {
             }
             0xF0 => { // LD A, (a8)
                 let a8 = 0xFF00 + (mem.read(self.pc) as u16);
+                self.pc += 1;
                 let val = mem.read(a8);
                 self.set_register_8(&Register8::A, val);
             }

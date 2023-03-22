@@ -16,9 +16,10 @@ impl Memory {
 
     pub fn read(&self, loc: u16) -> u8{
         let mut v;
-        if loc < 8000 {
+        if loc < 0x8000 {
             v = self.cart.read(loc);
         } else {
+            println!("Read 8000");
             v = self.mem[loc as usize]
         }
         println!("Read: 0x{:02x}", v);
@@ -37,9 +38,12 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
-        if loc < 8000 {
+        if loc < 0x8000 {
             self.cart.write(loc, val);
             return
+        }
+        if loc < 0xA000 {
+            println!("Write Video {:#x}", val);
         }
         self.mem[loc as usize] = val
     }
