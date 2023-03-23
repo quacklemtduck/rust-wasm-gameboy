@@ -8,16 +8,16 @@ fn main() {
     let file = load_file_to_vec(args[1].as_str()).unwrap();
 
     let mut gb = GameBoy::new(file);
-
-    gb.start();
-    for i in 0..200000 {
-        gb.step();
-        if i%4 == 0 {
-            gb.advance_line();
-        }
-    }
-
-    gb.print();
+    //
+    // gb.start();
+    // for i in 0..100010000 {
+    //     gb.step();
+    //     if i%4 == 0 {
+    //         gb.advance_line();
+    //     }
+    // }
+    //
+    // gb.print();
 }
 
 fn load_file_to_vec(filename: &str) -> std::io::Result<Vec<u8>> {

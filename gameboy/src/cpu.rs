@@ -518,153 +518,192 @@ impl CPU {
         self.flags.h = 0;
     }
 
-    pub fn run(&mut self, mem: &mut Memory){
+    pub fn run(&mut self, mem: &mut Memory) -> u8{
         let instruction = mem.read(self.pc);
         self.pc += 1;
 
-        println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} DE: {:#x}", instruction, self.pc - 1, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::DE));
+        // println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} DE: {:#x}", instruction, self.pc - 1, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::DE));
 
         match instruction {
-            0x00 => {} // NOP
+            0x00 => {
+                return 1
+            } // NOP
             0x01 => { // LD BC, d16
                 let value = mem.read_16(self.pc);
                 self.pc += 2;
                 self.set_register_16(&Register16::BC, value);
+                return 3
             }
             0x02 => { // LD (BC), A
                 mem.write(self.get_register_16(&Register16::BC), self.get_register_8(&Register8::A));
-
+                return 2
             }
             0x03 => { // INC BC
-                self.inc_register_16(&Register16::BC)
+                self.inc_register_16(&Register16::BC);
+                return 2
             }
             0x04 => { // INC B
                 self.inc_register_8(&Register8::B);
+                return 1
             }
             0x05 => { // DEC B
                 self.dec_register_8(&Register8::B);
+                return 1
             }
             0x06 => { // LD B, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::B, d8);
+                return 2
             }
             0x07 => { // RLCA
                 self.rlc(&Register8::A, false);
+                return 1
             }
             0x08 => { // LD (a16), SP
                 let a16 = mem.read_16(self.pc);
                 self.pc += 2;
                 mem.write_16(a16, self.sp);
+                return 5
             }
             0x09 => { // ADD HL, BC
                 self.add_hl(&Register16::BC);
+                return 2
             }
             0x0A => { // LD A, (BC)
                 let val = mem.read(self.get_register_16(&Register16::BC));
-                self.a = val;
+                self.set_register_8(&Register8::A, val);
+                return 2
             }
             0x0B => { // DEC BC
                 self.dec_register_16(&Register16::BC);
+                return 2
             }
             0x0C => { // INC C
                 self.inc_register_8(&Register8::C);
+                return 1
             }
             0x0D => { // DEC C
                 self.dec_register_8(&Register8::C);
+                return 1
             }
             0x0E => { // LD C, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::C, d8);
+                return 2
             }
             0x0F => { // RRCA
                 self.rrc(&Register8::A, false);
+                return 1
             }
             // TODO 0x10 STOP
             0x11 => { // LD DE, d16
                 let value = mem.read_16(self.pc);
                 self.pc += 2;
                 self.set_register_16(&Register16::DE, value);
+                return 3
             }
             0x12 => { // LD (DE), A
                 mem.write(self.get_register_16(&Register16::DE), self.get_register_8(&Register8::A));
+                return 2
             }
             0x13 => { // INC DE
                 self.inc_register_16(&Register16::DE);
+                return 2
             }
             0x14 => { // INC D
                 self.inc_register_8(&Register8::D);
+                return 1
             }
             0x15 => { // DEC D
                 self.dec_register_8(&Register8::D);
+                return 1
             }
             0x16 => { // LD D, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::D, d8);
+                return 2
             }
             0x17 => { // RLA
                 self.rl(&Register8::A, false);
+                return 1
             }
             0x18 => { // JR s8
                 let s8 = mem.read(self.pc);
                 self.pc += 1;
                 self.jump_relative(s8);
+                return 3
             }
             0x19 => { // ADD HL, DE
                 self.add_hl(&Register16::DE);
+                return 2
             }
             0x1A => { // LD A, (DE)
                 let val = mem.read(self.get_register_16(&Register16::DE));
-                self.a = val;
+                self.set_register_8(&Register8::A, val);
+                return 2
             }
             0x1B => { // DEC DE
                 self.dec_register_16(&Register16::DE);
+                return 2
             }
             0x1C => { // INC E
                 self.inc_register_8(&Register8::E);
+                return 1
             }
             0x1D => { // DEC E
                 self.dec_register_8(&Register8::E);
+                return 1
             }
             0x1E => { // LD E, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::E, d8);
+                return 2
             }
             0x1F => { // RRA
                 self.rr(&Register8::A, false);
+                return 1
             }
             0x20 => { // JR NZ, s8
                 let s8 = mem.read(self.pc);
                 self.pc += 1;
                 if self.flags.z == 0 {
-                    self.jump_relative(s8)
+                    self.jump_relative(s8);
+                    return 3
                 }
+                return 2
             }
             0x21 => { // LD HL, d16
                 let d16 = mem.read_16(self.pc);
                 self.pc += 2;
                 self.set_register_16(&Register16::HL, d16);
+                return 3
             }
             0x22 => { // LD (HL+), A
                 mem.write(self.get_register_16(&Register16::HL), self.get_register_8(&Register8::A));
                 self.inc_register_16(&Register16::HL);
+                return 2
             }
             0x23 => { // INC HL
                 self.inc_register_16(&Register16::HL);
+                return 2
             }
             0x24 => { // INC H
                 self.inc_register_8(&Register8::H);
+                return 1
             }
             0x25 => { // DEC H
                 self.dec_register_8(&Register8::H);
+                return 1
             }
             0x26 => { // LD H, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::H, d8);
+                return 2
             }
             0x27 => { // DAA
                 let orig =self.get_register_8(&Register8::A);
@@ -705,108 +744,135 @@ impl CPU {
                 } else {
                     self.flags.cy = 0;
                 }
+                return 1
             }
             0x28 => { // JR Z, s8
                 let s8 = mem.read(self.pc);
                 self.pc += 1;
                 if self.flags.z == 1 {
                     self.jump_relative(s8);
+                    return 3
                 }
+                return 2
             }
             0x29 => { // ADD HL, HL
                 self.add_hl(&Register16::HL);
+                return 2
             }
             0x2A => { // LD A, (HL+)
                 let val = mem.read(self.get_register_16(&Register16::HL));
-                self.a = val;
+                self.set_register_8(&Register8::A, val);
                 self.inc_register_16(&Register16::HL);
+                return 2
             }
             0x2B => { // DEC HL
                 self.dec_register_16(&Register16::HL);
+                return 2
             }
             0x2C => { // INC L
                 self.inc_register_8(&Register8::L);
+                return 1
             }
             0x2D => { // DEC L
                 self.dec_register_8(&Register8::L);
+                return 1
             }
             0x2E => { // LD L, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::L, d8);
+                return 2
             }
             0x2F => { // CPL inverts A
                 let value = !self.get_register_8(&Register8::A);
                 self.set_register_8(&Register8::A, value);
                 self.flags.n = 1;
                 self.flags.h = 1;
+                return 1
             }
             0x30 => { // JR NC, s8
                 let s8 = mem.read(self.pc);
                 self.pc += 1;
                 if self.flags.cy == 0 {
-                    self.jump_relative(s8)
+                    self.jump_relative(s8);
+                    return 3
                 }
+                return 2
             }
             0x31 => { // LD SP, d16
                 let d16 = mem.read_16(self.pc);
                 self.pc += 2;
                 self.set_register_16(&Register16::SP, d16);
+                return 3
             }
             0x32 => { // LD (HL-), A
                 mem.write(self.get_register_16(&Register16::HL), self.get_register_8(&Register8::A));
                 self.dec_register_16(&Register16::HL);
+                return 2
             }
             0x33 => { // INC SP
                 self.inc_register_16(&Register16::SP);
+                return 2
             }
             0x34 => { // INC (HL)
                 let addr = self.get_register_16(&Register16::HL);
                 self.inc_mem(mem, addr);
+                return 3
             }
             0x35 => { // DEC (HL)
                 let addr = self.get_register_16(&Register16::HL);
                 self.dec_mem(mem, addr);
+                return 3
             }
             0x36 => { // LD (HL), d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 let addr = self.get_register_16(&Register16::HL);
                 mem.write(addr, d8);
+                return 3
             }
             0x37 => { // SCF
                 self.flags.cy = 1;
                 self.flags.h = 0;
                 self.flags.n = 0;
+                return 1
             }
             0x38 => { // JR C, s8
                 let s8 = mem.read(self.pc);
                 self.pc += 1;
                 if self.flags.cy == 1 {
                     self.jump_relative(s8);
+                    return 3
                 }
+                return 2
             }
             0x39 => { // ADD, HL, SP
                 self.add_hl(&Register16::SP);
+                return 2
             }
             0x3A => { // LD A, (HL-)
                 let val = mem.read(self.get_register_16(&Register16::DE));
-                self.a = val;
+                self.set_register_8(&Register8::A, val);
                 self.dec_register_16(&Register16::HL);
+                return 2
             }
             0x3B => { // DEC SP
                 self.dec_register_16(&Register16::SP);
+                return 2
             }
             0x3C => { // INC A
                 self.inc_register_8(&Register8::A);
+                return 1
             }
             0x3D => { // DEC A
                 self.dec_register_8(&Register8::A);
+                return 1
             }
             0x3E => { // LD A, d8
                 let d8 = mem.read(self.pc);
                 self.pc += 1;
                 self.set_register_8(&Register8::A, d8);
+                return 2
             }
             0x3F => { // CCF
                 if self.flags.cy > 0 {
@@ -816,497 +882,655 @@ impl CPU {
                 }
                 self.flags.n = 0;
                 self.flags.h = 0;
+                return 1
             }
             0x40 => { // LD B, B
                 self.ld_r_r(&Register8::B, &Register8::B);
+                return 1
             }
             0x41 => { // LD B, C
                 self.ld_r_r(&Register8::B, &Register8::C);
+                return 1
             }
             0x42 => { // LD B, D
                 self.ld_r_r(&Register8::B, &Register8::D);
+                return 1
             }
             0x43 => { // LD B, E
                 self.ld_r_r(&Register8::B, &Register8::E);
+                return 1
             }
             0x44 => { // LD B, H
                 self.ld_r_r(&Register8::B, &Register8::H);
+                return 1
             }
             0x45 => { // LD B, L
-                self.ld_r_r(&Register8::B, &Register8::L);
+                self.ld_r_r(&Register8::B, &Register8::L);                      
+                return 1
             }
             0x46 => { // LD B, (HL)
                 self.ld_r_hl(mem, &Register8::B);
+                return 2
             }
             0x47 => { // LD B, A
                 self.ld_r_r(&Register8::B, &Register8::A);
+                return 1
             }
             0x48 => { // LD C, B
                 self.ld_r_r(&Register8::C, &Register8::B);
+                return 1
             }
             0x49 => { // LD C, C
                 self.ld_r_r(&Register8::C, &Register8::C);
+                return 1
             }
             0x4A => { // LD C, D
                 self.ld_r_r(&Register8::C, &Register8::D);
+                return 1
             }
             0x4B => { // LD C, E
                 self.ld_r_r(&Register8::C, &Register8::E);
+                return 1
             }
             0x4C => { // LD C, H
                 self.ld_r_r(&Register8::C, &Register8::H);
+                return 1
             }
             0x4D => { // LD C, L
                 self.ld_r_r(&Register8::C, &Register8::L);
+                return 1
             }
             0x4E => { // LD C, (HL)
                 self.ld_r_hl(mem, &Register8::C);
+                return 2
             }
             0x4F => { // LD C, A
                 self.ld_r_r(&Register8::C, &Register8::A);
+                return 1
             }
             0x50 => { // LD D, B
                 self.ld_r_r(&Register8::D, &Register8::B);
+                return 1
             }
             0x51 => { // LD D, C
                 self.ld_r_r(&Register8::D, &Register8::C);
+                return 1
             }
             0x52 => { // LD D, D
                 self.ld_r_r(&Register8::D, &Register8::D);
+                return 1
             }
             0x53 => { // LD D, E
                 self.ld_r_r(&Register8::D, &Register8::E);
+                return 1
             }
             0x54 => { // LD D, H
                 self.ld_r_r(&Register8::D, &Register8::H);
+                return 1
             }
             0x55 => { // LD D, L
                 self.ld_r_r(&Register8::D, &Register8::L);
+                return 1
             }
             0x56 => { // LD D, (HL)
                 self.ld_r_hl(mem, &Register8::D);
+                return 2
             }
             0x57 => { // LD D, A
                 self.ld_r_r(&Register8::D, &Register8::A);
+                return 1
             }
             0x58 => { // LD E, B
                 self.ld_r_r(&Register8::E, &Register8::B);
+                return 1
             }
             0x59 => { // LD E, C
                 self.ld_r_r(&Register8::E, &Register8::C);
+                return 1
             }
             0x5A => { // LD E, D
                 self.ld_r_r(&Register8::E, &Register8::D);
+                return 1
             }
             0x5B => { // LD E, E
                 self.ld_r_r(&Register8::E, &Register8::E);
+                return 1
             }
             0x5C => { // LD E, H
                 self.ld_r_r(&Register8::E, &Register8::H);
+                return 1
             }
             0x5D => { // LD E, L
                 self.ld_r_r(&Register8::E, &Register8::L);
+                return 1
             }
             0x5E => { // LD E, (HL)
                 self.ld_r_hl(mem, &Register8::E);
+                return 2
             }
             0x5F => { // LD E, A
                 self.ld_r_r(&Register8::E, &Register8::A);
+                return 1
             }
             0x60 => { // LD H, B
                 self.ld_r_r(&Register8::H, &Register8::B);
+                return 1
             }
             0x61 => { // LD H, C
                 self.ld_r_r(&Register8::H, &Register8::C);
+                return 1
             }
             0x62 => { // LD H, D
                 self.ld_r_r(&Register8::H, &Register8::D);
+                return 1
             }
             0x63 => { // LD H, E
                 self.ld_r_r(&Register8::H, &Register8::E);
+                return 1
             }
             0x64 => { // LD H, H
                 self.ld_r_r(&Register8::H, &Register8::H);
+                return 1
             }
             0x65 => { // LD H, L
                 self.ld_r_r(&Register8::H, &Register8::L);
+                return 1
             }
             0x66 => { // LD H, (HL)
                 self.ld_r_hl(mem, &Register8::H);
+                return 2
             }
             0x67 => { // LD H, A
                 self.ld_r_r(&Register8::H, &Register8::A);
+                return 1
             }
             0x68 => { // LD L, B
                 self.ld_r_r(&Register8::L, &Register8::B);
+                return 1
             }
             0x69 => { // LD L, C
                 self.ld_r_r(&Register8::L, &Register8::C);
+                return 1
             }
             0x6A => { // LD L, D
                 self.ld_r_r(&Register8::L, &Register8::D);
+                return 1
             }
             0x6B => { // LD L, E
                 self.ld_r_r(&Register8::L, &Register8::E);
+                return 1
             }
             0x6C => { // LD L, H
                 self.ld_r_r(&Register8::L, &Register8::H);
+                return 1
             }
             0x6D => { // LD L, L
                 self.ld_r_r(&Register8::L, &Register8::L);
+                return 1
             }
             0x6E => { // LD L, (HL)
                 self.ld_r_hl(mem, &Register8::L);
+                return 2
             }
             0x6F => { // LD L, A
                 self.ld_r_r(&Register8::L, &Register8::A);
+                return 1
             }
             0x70 => { // LD (HL), B
                 self.ld_hl_r(mem, &Register8::B);
+                return 2
             }
             0x71 => { // LD (HL), C
                 self.ld_hl_r(mem, &Register8::C);
+                return 2
             }
             0x72 => { // LD (HL), D
                 self.ld_hl_r(mem, &Register8::D);
+                return 2
             }
             0x73 => { // LD (HL), E
                 self.ld_hl_r(mem, &Register8::E);
+                return 2
             }
             0x74 => { // LD (HL), H
                 self.ld_hl_r(mem, &Register8::H);
+                return 2
             }
             0x75 => { // LD (HL), L
                 self.ld_hl_r(mem, &Register8::L);
+                return 2
             }
             // TODO 0x76 HALT
             0x77 => { // LD (HL), A
                 self.ld_hl_r(mem, &Register8::A);
+                return 2
             }
             0x78 => { // LD A, B
                 self.ld_r_r(&Register8::A, &Register8::B);
+                return 1
             }
             0x79 => { // LD A, C
                 self.ld_r_r(&Register8::A, &Register8::C);
+                return 1
             }
             0x7A => { // LD A, D
                 self.ld_r_r(&Register8::A, &Register8::D);
+                return 1
             }
             0x7B => { // LD A, E
                 self.ld_r_r(&Register8::A, &Register8::E);
+                return 1
             }
             0x7C => { // LD A, H
                 self.ld_r_r(&Register8::A, &Register8::H);
+                return 1
             }
             0x7D => { // LD A, L
                 self.ld_r_r(&Register8::A, &Register8::L);
+                return 1
             }
             0x7E => { // LD A, (HL)
                 self.ld_r_hl(mem, &Register8::A);
+                return 2
             }
             0x7F => { // LD A, A
                 self.ld_r_r(&Register8::A, &Register8::A);
+                return 1
             }
             0x80 => { // ADD A, B
                 self.add_to_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0x81 => { // ADD A, C
                 self.add_to_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0x82 => { // ADD A, D
                 self.add_to_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0x83 => { // ADD A, E
                 self.add_to_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0x84 => { // ADD A, H
                 self.add_to_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0x85 => { // ADD A, L
                 self.add_to_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0x86 => { // ADD A, (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.add_to_a(val);
+                return 2
             }
             0x87 => { // ADD A, A
                 self.add_to_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0x88 => { // ADC A, B
                 self.adc_to_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0x89 => { // ADC A, C
                 self.adc_to_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0x8A => { // ADC A, D
                 self.adc_to_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0x8B => { // ADC A, E
                 self.adc_to_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0x8C => { // ADC A, H
                 self.adc_to_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0x8D => { // ADC A, L
                 self.adc_to_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0x8E => { // ADC A, (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.adc_to_a(val);
+                return 2
             }
             0x8F => { // ADC A, A
                 self.adc_to_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0x90 => { // SUB A, B
                 self.sub_from_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0x91 => { // SUB A, C
                 self.sub_from_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0x92 => { // SUB A, D
                 self.sub_from_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0x93 => { // SUB A, E
                 self.sub_from_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0x94 => { // SUB A, H
                 self.sub_from_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0x95 => { // SUB A, L
                 self.sub_from_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0x96 => { // SUB A, (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.sub_from_a(val);
+                return 2
             }
             0x97 => { // SUB A, A
                 self.sub_from_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0x98 => { // SBC A, B
                 self.sbc_from_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0x99 => { // SBC A, C
                 self.sbc_from_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0x9A => { // SBC A, D
                 self.sbc_from_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0x9B => { // SBC A, E
                 self.sbc_from_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0x9C => { // SBC A, H
                 self.sbc_from_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0x9D => { // SBC A, L
                 self.sbc_from_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0x9E => { // SBC A, (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.sbc_from_a(val);
+                return 2
             }
             0x9F => { // SBC A, A
                 self.sbc_from_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0xA0 => { // AND B
                 self.and_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0xA1 => { // AND C
                 self.and_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0xA2 => { // AND D
                 self.and_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0xA3 => { // AND E
                 self.and_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0xA4 => { // AND H
                 self.and_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0xA5 => { // AND L
                 self.and_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0xA6 => { // AND (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.and_a(val);
+                return 2
             }
             0xA7 => { // AND A
                 self.and_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0xA8 => { // XOR B
                 self.xor_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0xA9 => { // XOR C
                 self.xor_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0xAA => { // XOR D
                 self.xor_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0xAB => { // XOR E
                 self.xor_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0xAC => { // XOR H
                 self.xor_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0xAD => { // XOR L
                 self.xor_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0xAE => { // XOR (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.xor_a(val);
+                return 2
             }
             0xAF => { // XOR A
                 self.xor_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0xB0 => { // OR B
                 self.or_a(self.get_register_8(&Register8::B));
+                return 1
             }
             0xB1 => { // OR C
                 self.or_a(self.get_register_8(&Register8::C));
+                return 1
             }
             0xB2 => { // OR D
                 self.or_a(self.get_register_8(&Register8::D));
+                return 1
             }
             0xB3 => { // OR E
                 self.or_a(self.get_register_8(&Register8::E));
+                return 1
             }
             0xB4 => { // OR H
                 self.or_a(self.get_register_8(&Register8::H));
+                return 1
             }
             0xB5 => { // OR L
                 self.or_a(self.get_register_8(&Register8::L));
+                return 1
             }
             0xB6 => { // OR (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.or_a(val);
+                return 2
             }
             0xB7 => { // OR A
                 self.or_a(self.get_register_8(&Register8::A));
+                return 1
             }
             0xB8 => { // CP B
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::B));
+                return 1
             }
             0xB9 => { // CP C
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::C));
+                return 1
             }
             0xBA => { // CP D
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::D));
+                return 1
             }
             0xBB => { // CP E
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::E));
+                return 1
             }
             0xBC => { // CP H
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::H));
+                return 1
             }
             0xBD => { // CP L
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::L));
+                return 1
             }
             0xBE => { // CP (HL)
                 let val = mem.read(self.get_register_16(&Register16::HL));
                 self.cp(self.get_register_8(&Register8::A), val);
+                return 2
             }
             0xBF => { // CP A
                 self.cp(self.get_register_8(&Register8::A), self.get_register_8(&Register8::A));
+                return 1
             }
             0xC0 => { // RET NZ
                 if self.flags.z == 0 {
                     let value = self.pop(mem);
                     self.pc = value;
+                    return 5
                 }
+                return 2
             }
             0xC1 => { // POP BC
                 let value = self.pop(mem);
                 self.set_register_16(&Register16::BC, value);
+                return 3
             }
             0xC2 => { // JP NZ, a16
                 if self.flags.z == 0 {
                     let a16 = mem.read_16(self.pc);
                     self.pc = a16;
+                    return 4
                 } else {
                     self.pc += 2;
+                    return 3
                 }
             }
             0xC3 => { // JP a16
                 let a16 = mem.read_16(self.pc);
                 self.pc = a16;
+                return 4
             }
             0xC4 => { // CALL NZ, a16
                 if self.flags.z == 0 {
                     let next = self.pc + 2;
                     self.push(mem, next);
                     self.pc = mem.read_16(self.pc);
+                    return 6
+                } else {
+                    self.pc += 2;
+                    return 3
                 }
             }
             0xC5 => { // PUSH BC
                 let val = self.get_register_16(&Register16::BC);
                 self.push(mem, val);
+                return 4
             }
             0xC6 => { // ADD A, d8
                 let val = mem.read(self.get_register_16(&Register16::PC));
                 self.pc += 1;
                 self.add_to_a(val);
+                return 2
             }
             0xC7 => { // RST 0
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x00);
+                return 4
             }
             0xC8 => { // RET Z
                 if self.flags.z == 1 {
                     let value = self.pop(mem);
                     self.pc = value;
+                    return 5
                 }
+                return 2
             }
             0xC9 => { // RET
                 let value = self.pop(mem);
                 self.pc = value;
+                return 4
             }
             0xCA => { // JP Z, a16
                 if self.flags.z == 1 {
                     let a16 = mem.read_16(self.pc);
                     self.pc = a16;
+                    return 4
                 } else {
                     self.pc += 2;
+                    return 3
                 }
             }
             0xCB => { // 16-bit opcodes
-                self.op_16(mem)
+                return self.op_16(mem)
             }
             0xCC => { // CALL Z, a16
                 if self.flags.z == 1 {
                     let next = self.pc + 2;
                     self.push(mem, next);
                     self.pc = mem.read_16(self.pc);
+                    return 6
+                } else {
+                    self.pc += 2;
+                    return 3
                 }
             }
             0xCD => { // CALL a16
                 let next = self.pc + 2;
                 self.push(mem, next);
                 self.pc = mem.read_16(self.pc);
+                return 6
             }
             0xCE => { // ADC A, d8
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 self.adc_to_a(val);
+                return 2
             }
             0xCF => { // RST 1
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x08);
+                return 4
             }
             0xD0 => { // RET NC
                 if self.flags.cy == 0 {
                     let value = self.pop(mem);
                     self.pc = value;
+                    return 5
                 }
+                return 2
             }
             0xD1 => { // POP DE
                 let value = self.pop(mem);
                 self.set_register_16(&Register16::DE, value);
+                return 3
             }
             0xD2 => { // JP NC, a16
                 if self.flags.cy == 0 {
                     let a16 = mem.read_16(self.pc);
                     self.pc = a16;
+                    return 6
                 } else {
                     self.pc += 2;
+                    return 3
                 }
             }
             0xD4 => { // CALL NC, a16
@@ -1314,38 +1538,50 @@ impl CPU {
                     let next = self.pc + 2;
                     self.push(mem, next);
                     self.pc = mem.read_16(self.pc);
+                    return 6
+                } else {
+                    self.pc += 2;
+                    return 3
                 }
             }
             0xD5 => { // PUSH DE
                 let val = self.get_register_16(&Register16::DE);
                 self.push(mem, val);
+                return 4
             }
             0xD6 => { // SUB d8
                 let val = mem.read(self.get_register_16(&Register16::PC));
                 self.pc += 1;
                 self.sub_from_a(val);
+                return 2
             }
             0xD7 => { // RST 2
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x10);
+                return 4
             }
             0xD8 => { // RET C
                 if self.flags.cy == 1 {
                     let value = self.pop(mem);
                     self.pc = value;
+                    return 5
                 }
+                return 2
             }
             0xD9 => { // RETI
                 self.set_interrupt(true);
                 let value = self.pop(mem);
                 self.pc = value;
+                return 4
             }
             0xDA => { // JP C, a16
                 if self.flags.cy == 1 {
                     let a16 = mem.read_16(self.pc);
                     self.pc = a16;
+                    return 4
                 } else {
                     self.pc += 2;
+                    return 3
                 }
             }
             0xDC => { // CALL C, a16
@@ -1353,45 +1589,56 @@ impl CPU {
                     let next = self.pc + 2;
                     self.push(mem, next);
                     self.pc = mem.read_16(self.pc);
+                    return 6
+                } else {
+                    self.pc += 2;
+                    return 3
                 }
-
             }
             0xDE => { // SBC A, d8
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 self.sbc_from_a(val);
+                return 2
             }
             0xDF => { // RST 3
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x18);
+                return 4
             }
             0xE0 => { // LD (a8) A
                 let val = self.get_register_8(&Register8::A);
                 let addr = 0xff00 + (mem.read(self.pc) as u16);
                 self.pc += 1;
                 mem.write(addr, val);
+                return 3
             }
             0xE1 => { // POP HL
                 let value = self.pop(mem);
                 self.set_register_16(&Register16::HL, value);
+                return 3
             }
             0xE2 => { // LD (C), A
                 let val = self.get_register_8(&Register8::A);
                 let addr = 0xff00 + (self.get_register_8(&Register8::C) as u16);
                 mem.write(addr, val);
+                return 2
             }
             0xE5 => { // PUSH HL
                 let val = self.get_register_16(&Register16::HL);
                 self.push(mem, val);
+                return 4
             }
             0xE6 => { // AND d8
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 self.and_a(val);
+                return 2
             }
             0xE7 => { // RST 4
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x20);
+                return 4
             }
             0xE8 => { // ADD SP, s8
                 let val = mem.read(self.pc);
@@ -1413,29 +1660,36 @@ impl CPU {
                 } else {
                     self.flags.cy = 0;
                 }
+                return 4
             }
             0xE9 => { // JP HL
                 self.pc = self.get_register_16(&Register16::HL);
+                return 1
             }
             0xEA => { // LD (a16), A
                 let val = self.get_register_8(&Register8::A);
                 let addr = mem.read_16(self.pc);
                 self.pc += 2;
                 mem.write(addr, val);
+                return 4
             }
             0xEE => { // XOR d8
                 let val = mem.read(self.pc);
+                self.pc += 1;
                 self.xor_a(val);
+                return 2
             }
             0xEF => { // RST 5
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x28);
+                return 4
             }
             0xF0 => { // LD A, (a8)
                 let a8 = 0xFF00 + (mem.read(self.pc) as u16);
                 self.pc += 1;
                 let val = mem.read(a8);
                 self.set_register_8(&Register8::A, val);
+                return 3
             }
             0xF1 => { // POP AF
                 let val = self.pop(mem);
@@ -1447,28 +1701,34 @@ impl CPU {
                 self.flags.h = (lower & 0b00100000) >> 5;
                 self.flags.cy = (lower & 0b00010000) >> 4;
                 self.flags.lower = lower & 0x0F;
+                return 3
             }
             0xF2 => { // LD A, (C)
                 let addr = 0xFF00 + (self.get_register_8(&Register8::C) as u16);
                 let val = mem.read(addr);
                 self.set_register_8(&Register8::A, val);
+                return 2
             }
             0xF3 => { // DI
                 self.set_interrupt(false);
+                return 1
             }
             0xF5 => { // PUSH AF
                 let f = ((self.flags.z << 7) | (self.flags.n << 6) | (self.flags.h << 5) | (self.flags.cy << 4) | self.flags.lower) as u16;
                 let val = ((self.get_register_8(&Register8::A) as u16) << 8) | f;
                 self.push(mem, val);
+                return 4
             }
             0xF6 => { // OR d8
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 self.or_a(val);
+                return 2
             }
             0xF7 => { // RST 6
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x30);
+                return 4
             }
             0xF8 => { // LD HL, SP+s8
                 let orig = self.get_register_16(&Register16::SP);
@@ -1490,58 +1750,71 @@ impl CPU {
                 } else {
                     self.flags.cy = 0;
                 }
+                return 3
             }
             0xF9 => { // LD SP, HL
                 let val = self.get_register_16(&Register16::HL);
                 self.set_register_16(&Register16::SP, val);
+                return 2
             }
             0xFA => { // LD A, (a16)
                 let addr = mem.read_16(self.pc);
                 self.pc += 2;
                 let val = mem.read(addr);
                 self.set_register_8(&Register8::A, val);
+                return 4
             }
             0xFB => { // EI
                 self.set_interrupt(true);
+                return 1
             }
             0xFE => { // CP d8
                 let val = mem.read(self.pc);
                 self.pc += 1;
                 self.cp(self.get_register_8(&Register8::A), val);
+                return 2
             }
             0xFF => { // RST 7
                 self.push(mem, self.get_register_16(&Register16::PC));
                 self.set_register_16(&Register16::PC, 0x38);
+                return 4
             }
 
             _ => {
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
+                return 0
             }
         }
     }
 
-    fn op_16(&mut self, mem: &mut Memory) {
+    fn op_16(&mut self, mem: &mut Memory) -> u8{
         let instruction = mem.read(self.pc);
         self.pc += 1;
         match instruction {
             0x00 => { // RLC B
                 self.rlc(&Register8::B, true);
+                return 2
             }
             0x01 => { // RLC C
                 self.rlc(&Register8::C, true);
+                return 2
             }
             0x02 => { // RLC D
                 self.rlc(&Register8::D, true);
+                return 2
             }
             0x03 => { // RLC E
                 self.rlc(&Register8::E, true);
+                return 2
             }
             0x04 => { // RLC H
                 self.rlc(&Register8::H, true);
+                return 2
             }
             0x05 => { // RLC L
                 self.rlc(&Register8::L, true);
+                return 2
             }
             0x06 => { // RLC (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1551,27 +1824,35 @@ impl CPU {
                 self.flags.h = 0;
                 self.flags.z = if value == 0 {1} else {0};
                 self.flags.n = 0;
+                return 4
             }
             0x07 => { // RLC A
                 self.rlc(&Register8::A, true);
+                return 2
             }
             0x08 => { // RRC B
                 self.rrc(&Register8::B, true);
+                return 2
             }
             0x09 => { // RRC C
                 self.rrc(&Register8::C, true);
+                return 2
             }
             0x0A => { // RRC D
                 self.rrc(&Register8::D, true);
+                return 2
             }
             0x0B => { // RRC E
                 self.rrc(&Register8::E, true);
+                return 2
             }
             0x0C => { // RRC H
                 self.rrc(&Register8::H, true);
+                return 2
             }
             0x0D => { // RRC L
                 self.rrc(&Register8::L, true);
+                return 2
             }
             0x0E => { // RRC (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1581,27 +1862,35 @@ impl CPU {
                 self.flags.h = 0;
                 self.flags.z = if value == 0 {1} else {0};
                 self.flags.n = 0;
+                return 4
             }
             0x0F => { // RRC A
                 self.rrc(&Register8::A, true);
+                return 2
             }
             0x10 => { // RL B
                 self.rl(&Register8::B, true);
+                return 2
             }
             0x11 => { // RL C
                 self.rl(&Register8::C, true);
+                return 2
             }
             0x12 => { // RL D
                 self.rl(&Register8::D, true);
+                return 2
             }
             0x13 => { // RL E
                 self.rl(&Register8::E, true);
+                return 2
             }
             0x14 => { // RL H
                 self.rl(&Register8::H, true);
+                return 2
             }
             0x15 => { // RL L
                 self.rl(&Register8::L, true);
+                return 2
             }
             0x16 => { // RL (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1613,27 +1902,35 @@ impl CPU {
                 self.flags.h = 0;
                 self.flags.z = if value == 0 {1} else {0};
                 self.flags.n = 0;
+                return 4
             }
             0x17 => { // RL A
                 self.rl(&Register8::A, true);
+                return 2
             }
             0x18 => { // RR B
                 self.rr(&Register8::B, true);
+                return 2
             }
             0x19 => { // RR C
                 self.rr(&Register8::C, true);
+                return 2
             }
             0x1A => { // RR D
                 self.rr(&Register8::D, true);
+                return 2
             }
             0x1B => { // RR E
                 self.rr(&Register8::E, true);
+                return 2
             }
             0x1C => { // RR H
                 self.rr(&Register8::H, true);
+                return 2
             }
             0x1D => { // RR L
                 self.rr(&Register8::L, true);
+                return 2
             }
             0x1E => { // RR (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1645,27 +1942,35 @@ impl CPU {
                 self.flags.h = 0;
                 self.flags.z = if value == 0 {1} else {0};
                 self.flags.n = 0;
+                return 4
             }
             0x1F => { // RR A
                 self.rr(&Register8::A, true);
+                return 2
             }
             0x20 => { // SLA B
                 self.sl(&Register8::B);
+                return 2
             }
             0x21 => { // SLA C
                 self.sl(&Register8::C);
+                return 2
             }
             0x22 => { // SLA D
                 self.sl(&Register8::D);
+                return 2
             }
             0x23 => { // SLA E
                 self.sl(&Register8::E);
+                return 2
             }
             0x24 => { // SLA H
                 self.sl(&Register8::H);
+                return 2
             }
             0x25 => { // SLA L
                 self.sl(&Register8::L);
+                return 2
             }
             0x26 => { // SLA (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1676,27 +1981,35 @@ impl CPU {
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
+                return 2
             }
             0x27 => { // SLA A
                 self.sl(&Register8::A);
+                return 2
             }
             0x28 => { // SRA B
                 self.sra(&Register8::B);
+                return 2
             }
             0x29 => { // SRA C
                 self.sra(&Register8::C);
+                return 2
             }
             0x2A => { // SRA D
                 self.sra(&Register8::D);
+                return 2
             }
             0x2B => { // SRA E
                 self.sra(&Register8::E);
+                return 2
             }
             0x2C => { // SRA H
                 self.sra(&Register8::H);
+                return 2
             }
             0x2D => { // SRA L
                 self.sra(&Register8::L);
+                return 2
             }
             0x2E => { // SRA (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1707,27 +2020,35 @@ impl CPU {
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
+                return 4
             }
             0x2F => { // SRA A
                 self.sra(&Register8::A);
+                return 2
             }
             0x30 => { // SWAP B
                 self.swap(&Register8::B);
+                return 2
             }
             0x31 => { // SWAP C
                 self.swap(&Register8::C);
+                return 2
             }
             0x32 => { // SWAP D
                 self.swap(&Register8::D);
+                return 2
             }
             0x33 => { // SWAP E
                 self.swap(&Register8::E);
+                return 2
             }
             0x34 => { // SWAP H
                 self.swap(&Register8::H);
+                return 2
             }
             0x35 => { // SWAP L
                 self.swap(&Register8::L);
+                return 2
             }
             0x36 => { // SWAP (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1738,27 +2059,35 @@ impl CPU {
                 self.flags.cy = 0;
                 self.flags.n = 0;
                 self.flags.h = 0;
+                return 2
             }
             0x37 => { // SWAP A
                 self.swap(&Register8::A);
+                return 2
             }
             0x38 => { // SRL B
                 self.srl(&Register8::B);
+                return 2
             }
             0x39 => { // SRL C
                 self.srl(&Register8::C);
+                return 2
             }
             0x3A => { // SRL D
                 self.srl(&Register8::D);
+                return 2
             }
             0x3B => { // SRL E
                 self.srl(&Register8::E);
+                return 2
             }
             0x3C => { // SRL H
                 self.srl(&Register8::H);
+                return 2
             }
             0x3D => { // SRL L
                 self.srl(&Register8::L);
+                return 2
             }
             0x3E => { // SRL (HL)
                 let addr = self.get_register_16(&Register16::HL);
@@ -1769,27 +2098,35 @@ impl CPU {
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
+                return 4
             }
             0x3F => { // SRL A
                 self.srl(&Register8::A);
+                return 2
             }
             0x40 | 0x48 | 0x50 | 0x58 | 0x60 | 0x68 | 0x70 | 0x78 => { // BIT B
                 self.bit(&Register8::B, (instruction - 0x40) / 0x08);
+                return 2
             }
             0x41 | 0x49 | 0x51 | 0x59 | 0x61 | 0x69 | 0x71 | 0x79 => { // BIT C
                 self.bit(&Register8::C, (instruction - 0x41) / 0x08);
+                return 2
             }
             0x42 | 0x4A | 0x52 | 0x5A | 0x62 | 0x6A | 0x72 | 0x7A => { // BIT D
                 self.bit(&Register8::D, (instruction - 0x42) / 0x08);
+                return 2
             }
             0x43 | 0x4B | 0x53 | 0x5B | 0x63 | 0x6B | 0x73 | 0x7B => { // BIT E
                 self.bit(&Register8::E, (instruction - 0x43) / 0x08);
+                return 2
             }
             0x44 | 0x4C | 0x54 | 0x5C | 0x64 | 0x6C | 0x74 | 0x7C => { // BIT H
                 self.bit(&Register8::H, (instruction - 0x44) / 0x08);
+                return 2
             }
             0x45 | 0x4D | 0x55 | 0x5D | 0x65 | 0x6D | 0x75 | 0x7D => { // BIT L
                 self.bit(&Register8::L, (instruction - 0x45) / 0x08);
+                return 2
             }
             0x46 | 0x4E | 0x56 | 0x5E | 0x66 | 0x6E | 0x76 | 0x7E => { // BIT (HL)
                 let bit = (instruction - 0x46) / 0x08;
@@ -1798,27 +2135,35 @@ impl CPU {
                 self.flags.z = if (val & (1 << bit)) != 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 1;
+                return 4
             }
             0x47 | 0x4F | 0x57 | 0x5F | 0x67 | 0x6F | 0x77 | 0x7F => { // BIT A
                 self.bit(&Register8::A, (instruction - 0x47) / 0x08);
+                return 2
             }
             0x80 | 0x88 | 0x90 | 0x98 | 0xA0 | 0xA8 | 0xB0 | 0xB8 => { // RES B
                 self.res(&Register8::B, (instruction - 0x80) / 0x08);
+                return 2
             }
             0x81 | 0x89 | 0x91 | 0x99 | 0xA1 | 0xA9 | 0xB1 | 0xB9 => { // RES C
                 self.res(&Register8::C, (instruction - 0x81) / 0x08);
+                return 2
             }
             0x82 | 0x8A | 0x92 | 0x9A | 0xA2 | 0xAA | 0xB2 | 0xBA => { // RES D
                 self.res(&Register8::D, (instruction - 0x82) / 0x08);
+                return 2
             }
             0x83 | 0x8B | 0x93 | 0x9B | 0xA3 | 0xAB | 0xB3 | 0xBB => { // RES E
                 self.res(&Register8::E, (instruction - 0x83) / 0x08);
+                return 2
             }
             0x84 | 0x8C | 0x94 | 0x9C | 0xA4 | 0xAC | 0xB4 | 0xBC => { // RES H
                 self.res(&Register8::H, (instruction - 0x84) / 0x08);
+                return 2
             }
             0x85 | 0x8D | 0x95 | 0x9D | 0xA5 | 0xAD | 0xB5 | 0xBD => { // RES L
                 self.res(&Register8::L, (instruction - 0x85) / 0x08);
+                return 2
             }
             0x86 | 0x8E | 0x96 | 0x9E | 0xA6 | 0xAE | 0xB6 | 0xBE => { // RES (HL)
                 let bit = (instruction - 0x86) / 0x08;
@@ -1826,27 +2171,35 @@ impl CPU {
                 let orig = mem.read(addr);
                 let val = orig & !(1 << bit);
                 mem.write(addr,val);
+                return 4
             }
             0x87 | 0x8F | 0x97 | 0x9F | 0xA7 | 0xAF | 0xB7 | 0xBF => { // RES A
                 self.res(&Register8::A, (instruction - 0x87) / 0x08);
+                return 2
             }
             0xC0 | 0xC8 | 0xD0 | 0xD8 | 0xE0 | 0xE8 | 0xF0 | 0xF8 => { // SET B
                 self.set(&Register8::B, (instruction - 0xC0) / 0x08);
+                return 2
             }
             0xC1 | 0xC9 | 0xD1 | 0xD9 | 0xE1 | 0xE9 | 0xF1 | 0xF9 => { // SET C
                 self.set(&Register8::C, (instruction - 0xC1) / 0x08);
+                return 2
             }
             0xC2 | 0xCA | 0xD2 | 0xDA | 0xE2 | 0xEA | 0xF2 | 0xFA => { // SET D
                 self.set(&Register8::D, (instruction - 0xC2) / 0x08);
+                return 2
             }
             0xC3 | 0xCB | 0xD3 | 0xDB | 0xE3 | 0xEB | 0xF3 | 0xFB => { // SET E
                 self.set(&Register8::E, (instruction - 0xC3) / 0x08);
+                return 2
             }
             0xC4 | 0xCC | 0xD4 | 0xDC | 0xE4 | 0xEC | 0xF4 | 0xFC => { // SET H
                 self.set(&Register8::H, (instruction - 0xC4) / 0x08);
+                return 2
             }
             0xC5 | 0xCD | 0xD5 | 0xDD | 0xE5 | 0xED | 0xF5 | 0xFD => { // SET L
                 self.set(&Register8::L, (instruction - 0xC5) / 0x08);
+                return 2
             }
             0xC6 | 0xCE | 0xD6 | 0xDE | 0xE6 | 0xEE | 0xF6 | 0xFE => { // SET (HL)
                 let bit = (instruction - 0xC6) / 0x08;
@@ -1854,14 +2207,17 @@ impl CPU {
                 let orig = mem.read(addr);
                 let val = orig | (1 << bit);
                 mem.write(addr,val);
+                return 4
             }
             0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => { // SET A
                 self.set(&Register8::A, (instruction - 0xC7) / 0x08);
+                return 2
             }
 
             _ => {
                 println!("Unsupported instruction: 0xCB{:02x}", instruction);
                 panic!("Unsupported instruction: 0xCB{:02x}", instruction);
+                return 0
             }
         }
     }

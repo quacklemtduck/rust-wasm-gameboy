@@ -21,7 +21,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "build:wasm": "cd wasm-lib && wasm-pack build --target web --out-dir pkg"
+    "build:wasm": "cd gameboy && wasm-pack build --target web --out-dir pkg"
   },
   "eslintConfig": {
     "extends": [

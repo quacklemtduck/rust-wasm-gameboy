@@ -14,15 +14,25 @@ impl Memory {
         return Memory{mem: [0; 0x10000], cart: c }
     }
 
+    pub fn print(&self) {
+        for i in 0..(0xFFFFu16 / 16) {
+            print!("0x{:04x} | ", i * 16);
+            for a in 0..16u16 {
+                print!("0x{:02x} ", self.read((i * 16) + a));
+            }
+            println!();
+        }
+    }
+
     pub fn read(&self, loc: u16) -> u8{
         let mut v;
         if loc < 0x8000 {
             v = self.cart.read(loc);
         } else {
-            println!("Read 8000");
+            // println!("Read 8000");
             v = self.mem[loc as usize]
         }
-        println!("Read: 0x{:02x}", v);
+        // println!("Read: 0x{:02x}", v);
         return v
     }
 
@@ -43,7 +53,7 @@ impl Memory {
             return
         }
         if loc < 0xA000 {
-            println!("Write Video {:#x}", val);
+            // println!("Write Video {:#x}", val);
         }
         self.mem[loc as usize] = val
     }

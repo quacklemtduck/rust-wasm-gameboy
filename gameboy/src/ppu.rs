@@ -1,3 +1,5 @@
+use wasm_bindgen::Clamped;
+use web_sys::{CanvasRenderingContext2d, ImageData, console};
 use crate::memory::Memory;
 
 pub struct PPU {
@@ -10,7 +12,7 @@ impl PPU {
     }
 
     pub fn advance_line(&self, mem: &mut Memory) {
-        println!("Advance");
+        // println!("Advance");
         let mut ly = mem.read(0xff44);
         ly = (ly + 1) % 154;
         mem.write(0xff44, ly);
@@ -66,6 +68,78 @@ impl PPU {
             mask <<= 1;
         }
         result
+    }
+
+    pub fn draw(&mut self, ctx: &CanvasRenderingContext2d) {
+        for (i, t) in self.tile_map.iter().enumerate() {
+            if (i/(160/8)*8) >= 144 {
+                break;
+            }
+            let mut img: Vec<u8> = Vec::new();
+            for (p, v) in t.data.iter().enumerate(){
+                match *v {
+                    0 => {
+
+                        img.push(0xe2);
+                        img.push(0xf3);
+                        img.push(0xe4);
+                        img.push(255);
+                    }
+                    1 => {
+                        img.push(0x94);
+                        img.push(0xe3);
+                        img.push(0x44);
+                        img.push(255);
+                    }
+                    2 => {
+                        img.push(0x46);
+                        img.push(0x87);
+                        img.push(0x8f);
+                        img.push(255);
+                    }
+                    3 => {
+                        img.push(0x33);
+                        img.push(0x2c);
+                        img.push(0x50);
+                        img.push(255);
+                    }
+                    _ => {
+                        img.push(0x00);
+                        img.push(0x00);
+                        img.push(0x00);
+                        img.push(255);
+                    }
+                }
+            }
+            console::log_1(&format!("Size: {}", img.len()).into());
+            let data = ImageData::new_with_u8_clamped_array(Clamped(&mut img), 8);
+            match data {
+                Ok(data) => {
+                    match ctx.put_image_data(&data, (i%(160/8) * 8) as f64, (i/(160/8)*8) as f64) {
+                        Ok(_) => {},
+                        Err(_) => console::log_1(&"Error".into()),
+                    }
+                },
+                Err(e) => {
+                    console::log_1(&e);
+                },
+            }
+        }
+
+        // img = Vec::new();
+        // for _ in 0..200 {
+        //     for _ in 0..200 {
+        //         img.push(0x33);
+        //         img.push(0x2c);
+        //         img.push(0x50);
+        //         img.push(255);
+        //     }
+        // }
+
+        
+        
+        
+        
     }
 }
 
