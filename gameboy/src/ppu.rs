@@ -8,7 +8,7 @@ const SCREEN_WIDTH: usize = 160;
 const PIXELS: usize = 160 * 144;
 pub struct PPU {
     tile_map: [Tile; 384],
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4]
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
 }
 
 impl PPU {
@@ -122,18 +122,6 @@ impl PPU {
             }
             
             self.paint_tile(i, (i * 8) % 160, ((i * 8) / 160) * 8);
-            // let data = ImageData::new_with_u8_clamped_array(Clamped(&mut img), 8);
-            // match data {
-            //     Ok(data) => {
-            //         match ctx.put_image_data(&data, (i%(160/8) * 8) as f64, (i/(160/8)*8) as f64) {
-            //             Ok(_) => {},
-            //             Err(_) => console::log_1(&"Error".into()),
-            //         }
-            //     },
-            //     Err(e) => {
-            //         console::log_1(&e);
-            //     },
-            // }
         }
 
 
@@ -150,22 +138,6 @@ impl PPU {
                 console::log_1(&e);
             },
         }
-
-
-        // img = Vec::new();
-        // for _ in 0..200 {
-        //     for _ in 0..200 {
-        //         img.push(0x33);
-        //         img.push(0x2c);
-        //         img.push(0x50);
-        //         img.push(255);
-        //     }
-        // }
-
-        
-        
-        
-        
     }
 }
 

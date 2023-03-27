@@ -1,3 +1,5 @@
+use web_sys::console;
+
 use crate::memory::Memory;
 
 pub struct CPU {
@@ -516,6 +518,19 @@ impl CPU {
         self.flags.cy = 0;
         self.flags.n = 0;
         self.flags.h = 0;
+    }
+
+    fn handle_interrupt(&mut self, mem: &mut Memory) -> u8 {
+        if(mem.read(0xFF44) == mem.read(0xFF45)){
+            
+        }
+        if !self.ime {
+            return 0
+        }
+        let i_flags = mem.read(0xFF0F);
+        if i_flags == 0 {
+            return 0;
+        }
     }
 
     pub fn run(&mut self, mem: &mut Memory) -> u8{
@@ -1101,6 +1116,9 @@ impl CPU {
                 return 2
             }
             // TODO 0x76 HALT
+            0x76 => {
+                return 1
+            }
             0x77 => { // LD (HL), A
                 self.ld_hl_r(mem, &Register8::A);
                 return 2
@@ -1781,6 +1799,7 @@ impl CPU {
             }
 
             _ => {
+                console::log_1(&format!("Unsupported instruction: 0x{:02x}", instruction).into());
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
                 return 0
@@ -2215,6 +2234,7 @@ impl CPU {
             }
 
             _ => {
+                console::log_1(&format!("Unsupported instruction: 0xCB{:02x}", instruction).into());
                 println!("Unsupported instruction: 0xCB{:02x}", instruction);
                 panic!("Unsupported instruction: 0xCB{:02x}", instruction);
                 return 0

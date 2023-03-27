@@ -1,3 +1,5 @@
+use web_sys::console;
+
 use crate::cartridge::Cartridge;
 
 pub struct Memory {
@@ -52,9 +54,10 @@ impl Memory {
             self.cart.write(loc, val);
             return
         }
-        if loc < 0xA000 {
-            // println!("Write Video {:#x}", val);
-        }
+        // if loc == 0x8001 {
+        //     // println!("Write Video {:#x}", val);
+        //     console::log_1(&format!("Write video {:#x}", val).into());
+        // }
         self.mem[loc as usize] = val
     }
 

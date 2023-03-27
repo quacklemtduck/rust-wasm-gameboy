@@ -26,6 +26,7 @@ pub struct GameBoy {
     mem: Memory,
     cpu: CPU,
     ppu: PPU,
+    iteration: u32
 }
 
 #[wasm_bindgen]
@@ -33,7 +34,7 @@ impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
         let cart = Cartridge::New(data);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new()}
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0}
     }
 
     pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
@@ -42,19 +43,33 @@ impl GameBoy {
 
         ctx.fill_rect(0.0, 0.0, 100.0, 100.0);
 
-        for i in 0..1000000 {
-            self.step();
-            self.advance_line();
-            if i % 50000 == 0 {
-                console::log_1(&"Draw".into());
-                self.ppu.prepare_tile_map(&mut self.mem);
-                self.ppu.draw(ctx);
-            }
-        }
+        // for i in 0..1000000 {
+        //     self.step();
+        //     self.advance_line();
+        //     if i % 50000 == 0 {
+        //         self.ppu.prepare_tile_map(&mut self.mem);
+        //         self.ppu.draw(ctx);
+        //     }
+        // }
     }
 
-    pub fn step(&mut self) {
-        self.cpu.run(&mut self.mem);
+     pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
+        loop {
+            self.iteration += self.step() as u32;
+            if self.iteration % 454 == 0{
+                self.advance_line()
+            }
+            if self.iteration >= 69905 {
+                self.iteration = self.iteration - 69905;
+                break
+            }
+        }
+        self.ppu.prepare_tile_map(&mut self.mem);
+        self.ppu.draw(ctx);
+     }
+
+    pub fn step(&mut self) -> u8 {
+        self.cpu.run(&mut self.mem)
     }
 
     pub fn advance_line(&mut self) {

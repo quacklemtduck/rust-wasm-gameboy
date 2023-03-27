@@ -10,6 +10,12 @@ function App() {
 
     const [ready, setReady] = useState(false)
 
+    let animationRef = useRef<any>(null)
+    const [paused, setPaused] = useState(true)
+
+    let lastRenderRef = useRef(0)
+    let fpsRef = useRef(0)
+
     useEffect(() => {
         init().then(() => {
             setReady(true)
@@ -36,14 +42,26 @@ function App() {
         reader.readAsArrayBuffer(file);
     }
 
-    let run = async () => {
+    let run = () => {
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
         gb?.start(ctx)
+        animationRef.current = requestAnimationFrame(loop)
+        setPaused(false)
     }
 
-    let loop = () => {
-        
+    let loop = (delta: DOMHighResTimeStamp) => {
+        fpsRef.current++
+        console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
+        lastRenderRef.current = delta
+        const ctx = canvasRef?.current?.getContext("2d")
+        if (ctx == null) return;
+        gb?.run(ctx)
+        animationRef.current = requestAnimationFrame(loop)
+    }
+
+    let isPaused = () => {
+        return animationRef.current == null
     }
 
   return (
@@ -55,6 +73,20 @@ function App() {
         { gb != null &&
             <button onClick={run}>Run</button>
         }
+        
+        {
+            paused ?
+            <button onClick={() => {
+                animationRef.current = requestAnimationFrame(loop)
+                setPaused(false)
+            }}>Start</button>:
+            <button onClick={() => {
+                cancelAnimationFrame(animationRef.current)
+                animationRef.current = null
+                setPaused(true)
+            }}>Pause</button>
+        }
+            
 
     </div>
   );
