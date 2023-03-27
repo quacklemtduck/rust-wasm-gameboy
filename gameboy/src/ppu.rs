@@ -2,13 +2,18 @@ use wasm_bindgen::Clamped;
 use web_sys::{CanvasRenderingContext2d, ImageData, console};
 use crate::memory::Memory;
 
+
+const SCREEN_HEIGHT: usize = 144;
+const SCREEN_WIDTH: usize = 160;
+const PIXELS: usize = 160 * 144;
 pub struct PPU {
-    tile_map: [Tile; 384]
+    tile_map: [Tile; 384],
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4]
 }
 
 impl PPU {
     pub fn new() -> PPU {
-        PPU{tile_map: [Tile::new(); 384]}
+        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4]}
     }
 
     pub fn advance_line(&self, mem: &mut Memory) {
@@ -70,61 +75,82 @@ impl PPU {
         result
     }
 
+    fn paint_tile(&mut self, tile_id: usize, x: usize, y: usize) {
+        if x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT {
+            return
+        }
+        let tile = self.tile_map[tile_id];
+        for (px, &p) in tile.data.iter().enumerate() {
+            if x + (px % 8) >= SCREEN_WIDTH || y + (px / 8) >= SCREEN_HEIGHT {
+                return
+            }
+            let pos = ((SCREEN_WIDTH * y) + x + (px % 8) + ((px / 8) * SCREEN_WIDTH)) * 4;
+            match p {
+                0 => {
+                    self.screen[pos] = 0xe2;
+                    self.screen[pos + 1] = 0xf3;
+                    self.screen[pos + 2] = 0xe4;
+                    self.screen[pos + 3] = 255;
+                }
+                1 => {
+                    self.screen[pos] = 0x94;
+                    self.screen[pos + 1] = 0xe3;
+                    self.screen[pos + 2] = 0x44;
+                    self.screen[pos + 3] = 255;
+                }
+                2 => {
+                    self.screen[pos] = 0x46;
+                    self.screen[pos + 1] = 0x87;
+                    self.screen[pos + 2] = 0x8f;
+                    self.screen[pos + 3] = 255;
+                }
+                3 => {
+                    self.screen[pos] = 0x33;
+                    self.screen[pos + 1] = 0x2c;
+                    self.screen[pos + 2] = 0x50;
+                    self.screen[pos + 3] = 255;
+                }
+                _ => {}
+            }
+        }
+    }
+
     pub fn draw(&mut self, ctx: &CanvasRenderingContext2d) {
-        for (i, t) in self.tile_map.iter().enumerate() {
+        for i in 0..self.tile_map.len() {
             if (i/(160/8)*8) >= 144 {
                 break;
             }
-            let mut img: Vec<u8> = Vec::new();
-            for (p, v) in t.data.iter().enumerate(){
-                match *v {
-                    0 => {
-
-                        img.push(0xe2);
-                        img.push(0xf3);
-                        img.push(0xe4);
-                        img.push(255);
-                    }
-                    1 => {
-                        img.push(0x94);
-                        img.push(0xe3);
-                        img.push(0x44);
-                        img.push(255);
-                    }
-                    2 => {
-                        img.push(0x46);
-                        img.push(0x87);
-                        img.push(0x8f);
-                        img.push(255);
-                    }
-                    3 => {
-                        img.push(0x33);
-                        img.push(0x2c);
-                        img.push(0x50);
-                        img.push(255);
-                    }
-                    _ => {
-                        img.push(0x00);
-                        img.push(0x00);
-                        img.push(0x00);
-                        img.push(255);
-                    }
-                }
-            }
-            console::log_1(&format!("Size: {}", img.len()).into());
-            let data = ImageData::new_with_u8_clamped_array(Clamped(&mut img), 8);
-            match data {
-                Ok(data) => {
-                    match ctx.put_image_data(&data, (i%(160/8) * 8) as f64, (i/(160/8)*8) as f64) {
-                        Ok(_) => {},
-                        Err(_) => console::log_1(&"Error".into()),
-                    }
-                },
-                Err(e) => {
-                    console::log_1(&e);
-                },
-            }
+            
+            self.paint_tile(i, (i * 8) % 160, ((i * 8) / 160) * 8);
+            // let data = ImageData::new_with_u8_clamped_array(Clamped(&mut img), 8);
+            // match data {
+            //     Ok(data) => {
+            //         match ctx.put_image_data(&data, (i%(160/8) * 8) as f64, (i/(160/8)*8) as f64) {
+            //             Ok(_) => {},
+            //             Err(_) => console::log_1(&"Error".into()),
+            //         }
+            //     },
+            //     Err(e) => {
+            //         console::log_1(&e);
+            //     },
+            // }
         }
+
+
+        let data = ImageData::new_with_u8_clamped_array(Clamped(&mut self.screen), SCREEN_WIDTH as u32);
+        match data {
+            Ok(data) => {
+                match ctx.put_image_data(&data, 0.0, 0.0) {
+                    Ok(_) => {},
+                    Err(_) => console::log_1(&"Error".into()),
+                }
+            },
+            Err(e) => {
+                console::log_1(&"What".into());
+                console::log_1(&e);
+            },
+        }
+
 
         // img = Vec::new();
         // for _ in 0..200 {

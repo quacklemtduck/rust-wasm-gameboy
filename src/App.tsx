@@ -26,7 +26,7 @@ function App() {
         })
     }
 
-    function loadFileIntoUint8Array(file: any, callback: (val: Uint8Array) => void) {
+    let loadFileIntoUint8Array = (file: any, callback: (val: Uint8Array) => void) => {
         const reader = new FileReader();
         reader.onload = function() {
             const arrayBuffer: any = reader.result;
@@ -40,6 +40,10 @@ function App() {
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
         gb?.start(ctx)
+    }
+
+    let loop = () => {
+        
     }
 
   return (

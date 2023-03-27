@@ -33,7 +33,7 @@ impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
         let cart = Cartridge::New(data);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new() }
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new()}
     }
 
     pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
@@ -50,9 +50,7 @@ impl GameBoy {
                 self.ppu.prepare_tile_map(&mut self.mem);
                 self.ppu.draw(ctx);
             }
-
         }
-
     }
 
     pub fn step(&mut self) {
