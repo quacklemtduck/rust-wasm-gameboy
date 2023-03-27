@@ -521,16 +521,76 @@ impl CPU {
     }
 
     fn handle_interrupt(&mut self, mem: &mut Memory) -> u8 {
-        if(mem.read(0xFF44) == mem.read(0xFF45)){
-            
+        let i_flags = mem.read(0xFF0F);
+
+        // STAT interrupts
+        let mut stat = mem.read(0xFF41);
+        if mem.read(0xFF44) == mem.read(0xFF45) {
+            stat = stat | 0b00000100;
+            mem.write(0xFF0F, mem.read(0xFF0F) | 0b10);
         }
+        // VBlank
+        if mem.read(0xFF44) == 144 {
+            mem.write(0xFF0F, mem.read(0xFF0F) | 0b11);
+        }
+        if mem.read(0xFF44) >= 144 {
+            stat = stat | 0b00000001;
+            mem.write(0xFF0F, mem.read(0xFF0F) | 0b10);
+        } else {
+            stat = stat & 0b11111110;
+        }
+        mem.write(0xFF41, stat);
+
+
+        // Timer
+        let tima = mem.read(0xFF05);
+        if tima == 0xFF {
+            mem.write(0xFF05, mem.read(0xFF06));
+            mem.write(0xFF0F, i_flags | 0b100)
+        } else {
+            if mem.read(0xFF07) & 0b100 > 0 {
+                mem.write(0xFF05, tima + 1);
+            }
+        }
+
         if !self.ime {
             return 0
         }
-        let i_flags = mem.read(0xFF0F);
         if i_flags == 0 {
             return 0;
         }
+        let ie = mem.read(0xFFFF);
+
+        // VBlank interrupt
+        if i_flags & ie & 0b1 > 0 {
+            self.push(mem, self.get_register_16(&Register16::PC));
+            self.set_register_16(&Register16::PC, 0x0040);
+            return 4;
+        }
+
+        // STAT interrupt
+        if i_flags & ie & 0b10 > 0 {
+            self.push(mem, self.get_register_16(&Register16::PC));
+            self.set_register_16(&Register16::PC, 0x0048);
+            return 4;
+        }
+
+        // Timer
+        if i_flags & ie & 0b100 > 0{
+            self.push(mem, self.get_register_16(&Register16::PC));
+            self.set_register_16(&Register16::PC, 0x0050);
+            return 4;
+        }
+
+        if i_flags & ie & 0b10000 > 0{
+            self.push(mem, self.get_register_16(&Register16::PC));
+            self.set_register_16(&Register16::PC, 0x0060);
+            return 4;
+        }
+
+
+
+        return 0
     }
 
     pub fn run(&mut self, mem: &mut Memory) -> u8{
