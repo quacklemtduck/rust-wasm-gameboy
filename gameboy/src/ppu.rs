@@ -76,6 +76,7 @@ impl PPU {
     }
 
     fn paint_tile(&mut self, tile_id: usize, x: usize, y: usize, wrap: bool) {
+        //console::log_1(&format!("tile: {}", tile_id).into());
         if !wrap && (x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) {
             return
         }
@@ -120,7 +121,49 @@ impl PPU {
         }
     }
 
-    pub fn draw(&mut self, ctx: &CanvasRenderingContext2d) {
+    fn draw_background(&mut self, mem: &mut Memory) {
+        let lcdc = mem.read(0xFF40);
+        let mode = lcdc | 0b10000 > 0;
+        let map = lcdc | 0b1000 > 0;
+
+        let scy = mem.read(0xFF42) as usize;
+        let scx = mem.read(0xFF43) as usize;
+
+        let by = scy + SCREEN_HEIGHT;
+        let bx = scx + SCREEN_WIDTH;
+
+        //console::log_1(&format!("Mode: {} Map: {}", mode, map).into());
+
+        let addr = if map {0x9C00} else {0x9800};
+        for i in 0..(32 * 32){
+            let tlx = (i % 32) * 8;
+            let tly = (i / 32) * 8;
+            let brx = tlx + 8;
+            let bry = tly + 8;
+
+            if (bx < tlx || scx > brx || by < tly || scy > bry) {
+                // console::log_1(&format!("Not inter").into());
+                // console::log_1(&format!("i: {} x: {} y: {} tlx: {} tly: {} scx: {} scy: {}",i, tlx - scx, tly - scy, tlx, tly, scx, scy).into());
+                continue
+            }
+
+            let mut t_id = mem.read((addr + i) as u16) as usize;
+            
+            if !mode && t_id < 128 {
+                t_id = t_id + 256
+            }
+            
+            // TODO handle negatives
+            if tlx >= scx && tly >= scy {
+                // console::log_1(&format!("i: {} x: {} y: {} tlx: {} tly: {} scx: {} scy: {}",i, tlx - scx, tly - scy, tlx, tly, scx, scy).into());
+                self.paint_tile(t_id, tlx - scx, tly - scy, false);
+            }
+            
+        }
+
+    }
+
+    pub fn draw(&mut self, mem: &mut Memory, ctx: &CanvasRenderingContext2d) {
         for i in 0..self.tile_map.len() {
             if (i/(160/8)*8) >= 144 {
                 break;
@@ -128,6 +171,7 @@ impl PPU {
             
             self.paint_tile(i, ((i * 8) % 160) + 4, ((i * 8) / 160) * 8, true);
         }
+        //self.draw_background(mem);
 
 
         let data = ImageData::new_with_u8_clamped_array(Clamped(&mut self.screen), SCREEN_WIDTH as u32);

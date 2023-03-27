@@ -69,7 +69,6 @@ impl Memory {
     }
 
     pub fn simulate_bootloader(&mut self) {
-        self.write(0xFF00, 0xFF);
         self.write(0xff05, 0x00);
         self.write(0xff06, 0x00);
         self.write(0xff07, 0x00);

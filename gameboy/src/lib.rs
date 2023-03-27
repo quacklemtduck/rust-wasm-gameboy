@@ -65,7 +65,7 @@ impl GameBoy {
             }
         }
         self.ppu.prepare_tile_map(&mut self.mem);
-        self.ppu.draw(ctx);
+        self.ppu.draw(&mut self.mem, ctx);
      }
 
     pub fn step(&mut self) -> u8 {

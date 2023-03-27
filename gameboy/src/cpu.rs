@@ -594,7 +594,7 @@ impl CPU {
         // Input
         if i_flags & ie & 0b10000 > 0{
             self.ime = false;
-            //console::log_1(&"Input".into());
+            console::log_1(&"Input".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0060);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b10000);
