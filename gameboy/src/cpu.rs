@@ -563,29 +563,42 @@ impl CPU {
 
         // VBlank interrupt
         if i_flags & ie & 0b1 > 0 {
+            self.ime = false;
+            //console::log_1(&"VBlank".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0040);
-            return 4;
+            mem.write(0xFF0F, mem.read(0xFF0F) & !1);
+            return 5;
         }
 
         // STAT interrupt
         if i_flags & ie & 0b10 > 0 {
+            self.ime = false;
+            //console::log_1(&"STAT".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0048);
-            return 4;
+            mem.write(0xFF0F, mem.read(0xFF0F) & !0b10);
+            return 5;
         }
 
         // Timer
         if i_flags & ie & 0b100 > 0{
+            self.ime = false;
+            //console::log_1(&"Timer".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0050);
-            return 4;
+            mem.write(0xFF0F, mem.read(0xFF0F) & !0b100);
+            return 5;
         }
 
+        // Input
         if i_flags & ie & 0b10000 > 0{
+            self.ime = false;
+            //console::log_1(&"Input".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0060);
-            return 4;
+            mem.write(0xFF0F, mem.read(0xFF0F) & !0b10000);
+            return 5;
         }
 
 
@@ -594,6 +607,10 @@ impl CPU {
     }
 
     pub fn run(&mut self, mem: &mut Memory) -> u8{
+        let v = self.handle_interrupt(mem);
+        if v != 0 {
+            return 0;
+        }
         let instruction = mem.read(self.pc);
         self.pc += 1;
 
@@ -1859,7 +1876,7 @@ impl CPU {
             }
 
             _ => {
-                console::log_1(&format!("Unsupported instruction: 0x{:02x}", instruction).into());
+                console::log_1(&format!("Unsupported instruction: 0x{:02x} Address: {:#x}", instruction, self.pc - 1).into());
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
                 return 0

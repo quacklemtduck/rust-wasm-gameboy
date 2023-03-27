@@ -75,16 +75,21 @@ impl PPU {
         result
     }
 
-    fn paint_tile(&mut self, tile_id: usize, x: usize, y: usize) {
-        if x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT {
+    fn paint_tile(&mut self, tile_id: usize, x: usize, y: usize, wrap: bool) {
+        if !wrap && (x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) {
             return
         }
         let tile = self.tile_map[tile_id];
         for (px, &p) in tile.data.iter().enumerate() {
-            if x + (px % 8) >= SCREEN_WIDTH || y + (px / 8) >= SCREEN_HEIGHT {
-                return
+            if !wrap && (x + (px % 8) >= SCREEN_WIDTH || y + (px / 8) >= SCREEN_HEIGHT) {
+                continue
             }
-            let pos = ((SCREEN_WIDTH * y) + x + (px % 8) + ((px / 8) * SCREEN_WIDTH)) * 4;
+            let pos = if wrap {
+                ((((y + (px / 8)) % SCREEN_HEIGHT) * SCREEN_WIDTH) + ((x + (px % 8)) % SCREEN_WIDTH)) * 4
+            } else {
+                ((SCREEN_WIDTH * y) + x + (px % 8) + ((px / 8) * SCREEN_WIDTH)) * 4
+            };
+                
             match p {
                 0 => {
                     self.screen[pos] = 0xe2;
@@ -121,7 +126,7 @@ impl PPU {
                 break;
             }
             
-            self.paint_tile(i, (i * 8) % 160, ((i * 8) / 160) * 8);
+            self.paint_tile(i, ((i * 8) % 160) + 4, ((i * 8) / 160) * 8, true);
         }
 
 
