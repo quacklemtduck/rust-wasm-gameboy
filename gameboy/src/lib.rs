@@ -55,52 +55,56 @@ impl GameBoy {
         // }
     }
 
-     pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
+     pub fn run(&mut self, ctx: &CanvasRenderingContext2d, bg_ctx: &CanvasRenderingContext2d) {
 
         loop {
             self.cnt -= self.step() as i32;
             let mut stat = self.mem.read(0xFF41);
+            //console::log_1(&format!("Mode: {} Cnt: {}", stat & 0b11, self.cnt).into());
             if self.cnt < 0 {
                 match stat & 0b11 {
                     0 => { // Going into either VBlank or Searching OAM
-                        self.advance_line();
-                        if self.mem.read(0xFF44) == 144{ //VBlank
+                        if self.mem.read(0xFF44) >= 144{ //VBlank
                             stat = stat + 1;
+                            self.cnt += 4560;
                             if stat & 0b10000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
                             self.ppu.draw(&mut self.mem, ctx)
                         } else {
                             stat = stat + 2;
+                            self.cnt += 80;
                             if stat & 0b100000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
                         }
                     },
-                    1 => { // Going into Searching OAM
+                    1 => { // Going into Searching OAM, end of frame
                         stat = stat + 1;
+                        self.cnt += 80;
                         if stat & 0b100000 > 0{
                             self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                         }
-                    }
+                        self.mem.write(0xFF41, stat);
+                        return;
+                    },
+                    2 => { // Going into Generating picture
+                        stat = stat + 1;
+                        self.cnt += 168;
+                    },
+                    3 => {
+                        self.advance_line(bg_ctx);
+                        stat = stat - 3;
+                        self.cnt += 208;
+                        if stat & 0b1000 > 0{
+                            self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
+                        }
+                    },
+                    _ => console::error_1(&"Unreachable mode".into())
+
                 }
             }
             self.mem.write(0xFF41, stat);
-        }
-
-        loop {
-            self.iteration += 1;
-            self.step();
-            if self.iteration % 453 == 0{
-                self.advance_line()
-            }
-            if self.mem.read(0xFF44) == 144 {
-                self.ppu.draw(&mut self.mem, ctx)
-            }
-            if self.iteration >= 69905 {
-                self.iteration = self.iteration - 69905;
-                break
-            }
         }
         // self.ppu.draw(&mut self.mem, ctx);
      }
@@ -109,8 +113,8 @@ impl GameBoy {
         self.cpu.run(&mut self.mem)
     }
 
-    pub fn advance_line(&mut self) {
-        self.ppu.advance_line(&mut self.mem);
+    pub fn advance_line(&mut self, bg_ctx: &CanvasRenderingContext2d) {
+        self.ppu.advance_line(&mut self.mem, bg_ctx);
     }
 
     #[wasm_bindgen(skip)]

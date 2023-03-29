@@ -524,18 +524,6 @@ impl CPU {
         let i_flags = mem.read(0xFF0F);
 
         // STAT interrupts
-        let mut stat = mem.read(0xFF41);
-        // VBlank
-        if mem.read(0xFF44) == 144 {
-            mem.write(0xFF0F, mem.read(0xFF0F) | 0b11);
-        }
-        if mem.read(0xFF44) >= 144 {
-            stat = stat | 0b00000001;
-            mem.write(0xFF0F, mem.read(0xFF0F) | 0b10);
-        } else {
-            stat = stat & 0b11111110;
-        }
-        mem.write(0xFF41, stat);
 
 
         // Timer

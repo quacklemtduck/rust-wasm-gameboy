@@ -4,6 +4,7 @@ import init, {GameBoy} from 'gameboy';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
+    let bgRef = useRef<HTMLCanvasElement>(null)
     let fileRef = useRef(null)
 
     const [gb, setGb] = useState<GameBoy | null>(null)
@@ -52,11 +53,12 @@ function App() {
 
     let loop = (delta: DOMHighResTimeStamp) => {
         fpsRef.current++
-        console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
+        //console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
         lastRenderRef.current = delta
         const ctx = canvasRef?.current?.getContext("2d")
-        if (ctx == null) return;
-        gb?.run(ctx)
+        const bgCtx = bgRef?.current?.getContext("2d")
+        if (ctx == null || bgCtx == null) return;
+        gb?.run(ctx, bgCtx);
         animationRef.current = requestAnimationFrame(loop)
     }
 
@@ -86,7 +88,8 @@ function App() {
                 setPaused(true)
             }}>Pause</button>
         }
-            
+
+        <canvas style={{width: 256, height: 256, border: "1px solid black"}} ref={bgRef} width={256} height={256} /> 
 
     </div>
   );
