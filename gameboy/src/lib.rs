@@ -26,7 +26,8 @@ pub struct GameBoy {
     mem: Memory,
     cpu: CPU,
     ppu: PPU,
-    iteration: u32
+    iteration: u32,
+    cnt: i32
 }
 
 #[wasm_bindgen]
@@ -34,12 +35,13 @@ impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
         let cart = Cartridge::New(data);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0}
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0}
     }
 
     pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
         self.cpu.simulate_bootloader();
         self.mem.simulate_bootloader();
+        self.cnt = 80;
 
         ctx.fill_rect(0.0, 0.0, 100.0, 100.0);
 
@@ -54,18 +56,53 @@ impl GameBoy {
     }
 
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
+
         loop {
-            self.iteration += self.step() as u32;
-            if self.iteration % 454 == 0{
+            self.cnt -= self.step() as i32;
+            let mut stat = self.mem.read(0xFF41);
+            if self.cnt < 0 {
+                match stat & 0b11 {
+                    0 => { // Going into either VBlank or Searching OAM
+                        self.advance_line();
+                        if self.mem.read(0xFF44) == 144{ //VBlank
+                            stat = stat + 1;
+                            if stat & 0b10000 > 0{
+                                self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
+                            }
+                            self.ppu.draw(&mut self.mem, ctx)
+                        } else {
+                            stat = stat + 2;
+                            if stat & 0b100000 > 0{
+                                self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
+                            }
+                        }
+                    },
+                    1 => { // Going into Searching OAM
+                        stat = stat + 1;
+                        if stat & 0b100000 > 0{
+                            self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
+                        }
+                    }
+                }
+            }
+            self.mem.write(0xFF41, stat);
+        }
+
+        loop {
+            self.iteration += 1;
+            self.step();
+            if self.iteration % 453 == 0{
                 self.advance_line()
+            }
+            if self.mem.read(0xFF44) == 144 {
+                self.ppu.draw(&mut self.mem, ctx)
             }
             if self.iteration >= 69905 {
                 self.iteration = self.iteration - 69905;
                 break
             }
         }
-        self.ppu.prepare_tile_map(&mut self.mem);
-        self.ppu.draw(&mut self.mem, ctx);
+        // self.ppu.draw(&mut self.mem, ctx);
      }
 
     pub fn step(&mut self) -> u8 {

@@ -9,16 +9,31 @@ const PIXELS: usize = 160 * 144;
 pub struct PPU {
     tile_map: [Tile; 384],
     screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+
+    bg: [u8; 32 * 32]
 }
 
 impl PPU {
     pub fn new() -> PPU {
-        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4]}
+        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], bg: [0; 32 * 32]}
     }
 
-    pub fn advance_line(&self, mem: &mut Memory) {
+    pub fn advance_line(&mut self, mem: &mut Memory) {
         // println!("Advance");
         let mut ly = mem.read(0xff44);
+
+        //Draw the line
+        if ly < 144 {
+            // If new graphics, parse them
+            if mem.new_graphics {
+                self.prepare_tile_map(mem);
+                self.prepare_bg(mem);
+                mem.new_graphics = false;
+            }
+
+            self.draw_background_line(mem, ly);
+        }
+
         ly = (ly + 1) % 154;
         mem.write(0xff44, ly);
     }
@@ -36,6 +51,69 @@ impl PPU {
                     self.tile_map[i as usize].data[j + ((x as usize) * 8)] = *n;
                 }
             }
+        }
+    }
+
+    pub fn prepare_bg(&mut self, mem: &mut Memory){
+        let lcdc = mem.read(0xFF40);
+        let data_area = lcdc | 0b10000 > 0;
+        let map_area = lcdc | 0b1000 > 0;
+        
+        let area_addr = if !map_area {0x9C00} else {0x9800};
+        for i in 0..1024 {
+            self.bg[i] = mem.read(area_addr + i as u16);
+        }
+    }
+
+    fn draw_background_line(&mut self, mem: &mut Memory, ly: u8) {
+        //console::log_1(&format!("Drawing: {}", ly).into());
+        let lcdc = mem.read(0xFF40);
+        let data_area = lcdc | 0b10000 > 0;
+        let map_area = lcdc | 0b1000 > 0;
+
+        let scy = mem.read(0xFF42) as usize;
+        let scx = mem.read(0xFF43) as usize;
+
+        let y = scy + (ly as usize); 
+        let mut x = scx;
+        while x < (scx + 160){
+            let tx = x % 256;
+            let ty = y % 256;
+            let t_index = ((tx / 8)) + ((ty / 8) * 32);
+            let mut t_id = self.bg[t_index] as usize;
+            if !data_area && t_id < 128 {
+                t_id = t_id + 256
+            }
+            let tile = self.tile_map[t_id];
+            //tile.print(t_id);
+
+            for tile_x in (tx % 8)..8 {
+                if x >= (scx + 160){
+                    break
+                }
+                let tile_pos = tile_x + ((ty % 8) * 8);
+                let (r, g, b) = self.get_color(tile.data[tile_pos]);
+                
+                let screen_pos = ((x - scx) + ((ly as usize) * SCREEN_WIDTH)) * 4;
+
+                self.screen[screen_pos] = r;
+                self.screen[screen_pos + 1] = g;
+                self.screen[screen_pos + 2] = b;
+                self.screen[screen_pos + 3] = 0xFF;
+
+                x += 1;
+            }
+        }
+
+    }
+
+    fn get_color(&self, color: u8) -> (u8, u8, u8) {
+        match color {
+            0 => (0xe2, 0xf3, 0xe4),
+            1 => (0x94, 0xe3, 0x44),
+            2 => (0x46, 0x87, 0x8f),
+            3 => (0x33, 0x2c, 0x50),
+            _ => (0,0,0)
         }
     }
 
@@ -121,6 +199,7 @@ impl PPU {
         }
     }
 
+
     fn draw_background(&mut self, mem: &mut Memory) {
         let lcdc = mem.read(0xFF40);
         let mode = lcdc | 0b10000 > 0;
@@ -164,13 +243,13 @@ impl PPU {
     }
 
     pub fn draw(&mut self, mem: &mut Memory, ctx: &CanvasRenderingContext2d) {
-        for i in 0..self.tile_map.len() {
-            if (i/(160/8)*8) >= 144 {
-                break;
-            }
+        // for i in 0..self.tile_map.len() {
+        //     if (i/(160/8)*8) >= 144 {
+        //         break;
+        //     }
             
-            self.paint_tile(i, ((i * 8) % 160) + 4, ((i * 8) / 160) * 8, true);
-        }
+        //     self.paint_tile(i, ((i * 8) % 160) + 4, ((i * 8) / 160) * 8, true);
+        // }
         //self.draw_background(mem);
 
 
@@ -198,5 +277,31 @@ struct Tile {
 impl Tile {
     pub fn new() -> Tile {
         Tile{data: [0; 64]}
+    }
+
+    pub fn print(&self, id: usize) {
+        if id == 0 {
+            return
+        }
+            let tile = self;
+            // println!("Tile {:#x} {:?}", id, tile);
+            console::log_1(&format!("Tile {:#x} {:?}", id, tile).into());
+            let mut s = String::new();
+            for i in 0..8 {
+                for j in 0..8 {
+                    let symbol = match tile.data[(i * 8) + j] {
+                        0 => " ",
+                        1 => "░",
+                        2 => "▒",
+                        3 => "▓",
+                        _ => ""
+                    };
+                    s.push_str(symbol);
+                    //print!("{} ", symbol);
+                }
+                //println!();
+                s.push_str("\n");
+            }
+            console::log_1(&s.into());;
     }
 }

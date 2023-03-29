@@ -5,6 +5,7 @@ use crate::cartridge::Cartridge;
 pub struct Memory {
     pub mem: [u8; 0x10000],
     pub cart: Cartridge,
+    pub new_graphics: bool
 }
 
 impl Memory {
@@ -13,7 +14,7 @@ impl Memory {
             None => Cartridge::New(vec![0; 1024 * 32]),
             Some(x) => x
         };
-        return Memory{mem: [0; 0x10000], cart: c }
+        return Memory{mem: [0; 0x10000], cart: c, new_graphics: true }
     }
 
     pub fn print(&self) {
@@ -58,6 +59,28 @@ impl Memory {
         //     // println!("Write Video {:#x}", val);
         //     console::log_1(&format!("Write video {:#x}", val).into());
         // }
+
+        // If we have to re-render tiles and background
+        if loc < 0xA000 {
+            if self.mem[0xFF41] & 0b11 == 3 {
+                return
+            }
+            self.new_graphics = true;
+        }
+
+        // Compare LY and LYC
+        if loc == 0xFF44 {
+            self.new_graphics = true;
+            if val == self.mem[0xFF45] {
+                self.mem[0xFF41] = self.mem[0xFF41] | 0x4;
+                // Interrupt
+                if self.mem[0xFF41] & 0b01000000 > 0{
+                    self.mem[0xFF0F] = self.mem[0xFF0F] | 0x2 // Interrupt
+                }
+            } else {
+                self.mem[0xFF41] = self.mem[0xFF41] & 0xFB;
+            }
+        }
         self.mem[loc as usize] = val
     }
 
@@ -92,6 +115,7 @@ impl Memory {
         self.write(0xff25, 0xf3);
         self.write(0xff26, 0x80);
         self.write(0xff40, 0x91);
+        self.write(0xff41, 0x82);
         self.write(0xff42, 0x00);
         self.write(0xff43, 0x00);
         self.write(0xff44, 0x8f);
