@@ -28,7 +28,7 @@ impl PPU {
             if mem.new_graphics {
                 self.prepare_tile_map(mem);
                 self.prepare_bg(mem);
-                self.draw_bg_tilemap(mem, bg_ctx);
+                // self.draw_bg_tilemap(mem, bg_ctx);
                 mem.new_graphics = false;
             }
 

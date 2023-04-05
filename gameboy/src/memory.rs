@@ -5,7 +5,7 @@ use crate::cartridge::Cartridge;
 pub struct Memory {
     pub mem: [u8; 0x10000],
     pub cart: Cartridge,
-    pub new_graphics: bool
+    pub new_graphics: bool,
 }
 
 impl Memory {
@@ -62,10 +62,14 @@ impl Memory {
 
         // If we have to re-render tiles and background
         if loc < 0xA000 {
-            if self.mem[0xFF41] & 0b11 == 3 {
-                return
-            }
+            // if self.mem[0xFF41] & 0b11 == 3 {
+            //     return
+            // }
             self.new_graphics = true;
+        }
+
+        if loc == 0xFF00 {
+
         }
 
         // Compare LY and LYC

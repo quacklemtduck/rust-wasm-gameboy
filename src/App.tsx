@@ -43,6 +43,22 @@ function App() {
         reader.readAsArrayBuffer(file);
     }
 
+    let onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
+
+        if (e.key === 's') {
+        // console.log(e)
+            gb?.set_joypad_state(0,0,0,0,1,0,0,0)
+        }
+    }
+
+    let onKeyUp = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
+
+        if (e.key === 's') {
+        console.log(e)
+            gb?.set_joypad_state(0,0,0,0,0,0,0,0)
+        }
+    }
+
     let run = () => {
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
@@ -53,11 +69,12 @@ function App() {
 
     let loop = (delta: DOMHighResTimeStamp) => {
         fpsRef.current++
-        //console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
+        // console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
         lastRenderRef.current = delta
         const ctx = canvasRef?.current?.getContext("2d")
         const bgCtx = bgRef?.current?.getContext("2d")
         if (ctx == null || bgCtx == null) return;
+        gb?.set_joypad_state(0,0,0,0,1,0,0,0);
         gb?.run(ctx, bgCtx);
         animationRef.current = requestAnimationFrame(loop)
     }
@@ -68,7 +85,7 @@ function App() {
 
   return (
     <div className="App">
-        <canvas ref={canvasRef} width={160} height={144}/>
+        <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyPress={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
         {ready &&
             <input ref={fileRef} type={"file"} onChange={onFile} />
         }

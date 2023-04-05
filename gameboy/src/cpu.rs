@@ -10,7 +10,8 @@ pub struct CPU {
     hl: Register,
     sp: u16,
     pc: u16,
-    ime: bool
+    ime: bool,
+    halt: bool
 }
 
 impl CPU {
@@ -29,7 +30,8 @@ impl CPU {
             hl: Register::new(),
             sp: 0,
             pc: 0,
-            ime: false
+            ime: false,
+            halt: false
         }
     }
 
@@ -522,9 +524,14 @@ impl CPU {
 
     fn handle_interrupt(&mut self, mem: &mut Memory) -> u8 {
         let i_flags = mem.read(0xFF0F);
+        let ie = mem.read(0xFFFF);
 
-        // STAT interrupts
-
+        if self.halt && (i_flags & ie) == 0 {
+            self.halt = false;
+            return 0
+        } else {
+            self.halt = false;
+        }
 
         // Timer
         let tima = mem.read(0xFF05);
@@ -543,7 +550,6 @@ impl CPU {
         if i_flags == 0 {
             return 0;
         }
-        let ie = mem.read(0xFFFF);
 
         // VBlank interrupt
         if i_flags & ie & 0b1 > 0 {
@@ -592,8 +598,8 @@ impl CPU {
 
     pub fn run(&mut self, mem: &mut Memory) -> u8{
         let v = self.handle_interrupt(mem);
-        if v != 0 {
-            return 0;
+        if v != 0 || self.halt {
+            return v;
         }
         let instruction = mem.read(self.pc);
         self.pc += 1;
@@ -1178,6 +1184,7 @@ impl CPU {
             }
             // TODO 0x76 HALT
             0x76 => {
+                self.halt = true;
                 return 1
             }
             0x77 => { // LD (HL), A

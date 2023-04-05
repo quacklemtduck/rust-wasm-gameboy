@@ -4,7 +4,9 @@ mod cpu;
 mod memory;
 mod cartridge;
 mod ppu;
+mod joypad;
 
+use joypad::Joypad;
 use wasm_bindgen::prelude::*;
 use web_sys::CanvasRenderingContext2d;
 use web_sys::console;
@@ -26,6 +28,7 @@ pub struct GameBoy {
     mem: Memory,
     cpu: CPU,
     ppu: PPU,
+    joypad: Joypad,
     iteration: u32,
     cnt: i32
 }
@@ -35,7 +38,7 @@ impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
         let cart = Cartridge::New(data);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0}
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new()}
     }
 
     pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
@@ -107,6 +110,10 @@ impl GameBoy {
             self.mem.write(0xFF41, stat);
         }
         // self.ppu.draw(&mut self.mem, ctx);
+     }
+
+     pub fn set_joypad_state(&mut self, up: i32, right: i32, down: i32, left: i32, a: i32, b: i32, select: i32, start: i32) {
+        self.joypad.set_joypad_state(up, right, down, left, a, b, select, start, &mut self.mem)
      }
 
     pub fn step(&mut self) -> u8 {
