@@ -21,7 +21,7 @@ impl PPU {
     pub fn advance_line(&mut self, mem: &mut Memory, bg_ctx: &CanvasRenderingContext2d) {
         // println!("Advance");
         let mut ly = mem.read(0xff44);
-
+        let lcdc = mem.read(0xff40);
         //Draw the line
         if ly < 144 {
             // If new graphics, parse them
@@ -33,6 +33,8 @@ impl PPU {
             }
 
             self.draw_background_line(mem, ly);
+            self.draw_sprite_line(mem, ly, lcdc);
+
         }
 
         ly = (ly + 1) % 154;
@@ -57,7 +59,6 @@ impl PPU {
 
     pub fn prepare_bg(&mut self, mem: &mut Memory){
         let lcdc = mem.read(0xFF40);
-        let data_area = lcdc & 0b10000 > 0;
         let map_area = lcdc & 0b1000 > 0;
         
         let area_addr = if map_area {0x9C00} else {0x9800};
@@ -98,7 +99,6 @@ impl PPU {
         //console::log_1(&format!("Drawing: {}", ly).into());
         let lcdc = mem.read(0xFF40);
         let data_area = lcdc & 0b10000 > 0;
-        let map_area = lcdc & 0b1000 > 0;
 
         let scy = mem.read(0xFF42) as usize;
         let scx = mem.read(0xFF43) as usize;
@@ -134,6 +134,45 @@ impl PPU {
             }
         }
 
+    }
+
+    fn draw_sprite_line(&mut self, mem: &mut Memory, ly: u8, lcdc: u8) {
+        // Looping through the sprites in reverse
+
+        for i in (0..40).rev() {
+            // Sprites use 4 bytes
+            // Byte 0: Y Position
+            // Byte 1: X Position
+            // Byte 2: Tile Index
+            // Byte 3: Attributes: Source: Pandocs
+            //       Bit7   BG and Window over OBJ (0=No, 1=BG and Window colors 1-3 over the OBJ)
+            //       Bit6   Y flip          (0=Normal, 1=Vertically mirrored)
+            //       Bit5   X flip          (0=Normal, 1=Horizontally mirrored)
+            //       Bit4   Palette number  **Non CGB Mode Only** (0=OBP0, 1=OBP1)
+            //       Bit3   Tile VRAM-Bank  **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
+            //       Bit2-0 Palette number  **CGB Mode Only**     (OBP0-7)
+
+            let spriteIndex = i * 4;
+            let index = 0xFE00 + spriteIndex; // Sprite table index
+
+            let y = mem.read(index) as i32 - 16; // Offset by 16 pixels
+            let x = mem.read(index + 1) as i32 - 8; // Offset by 8 pixels
+            let mut tile_id = mem.read(index + 2);
+
+            let sprite_height: u8 = if lcdc & 0b100 > 0 {
+                tile_id = tile_id & !0x1; // Ignore the lower bit
+                16
+            } else {
+                8
+            };
+
+            // If we should draw it
+            if (ly as i32) >= y && (ly as i32) < y + (sprite_height as i32) {
+                let attributes = mem.read(index + 3);
+
+            }
+
+        }
     }
 
     fn get_color(&self, color: u8) -> (u8, u8, u8) {
