@@ -33,7 +33,7 @@ impl PPU {
             }
 
             self.draw_background_line(mem, ly);
-            self.draw_sprite_line(mem, ly, lcdc);
+            //self.draw_sprite_line(mem, ly, lcdc);
 
         }
 
@@ -103,6 +103,12 @@ impl PPU {
         let scy = mem.read(0xFF42) as usize;
         let scx = mem.read(0xFF43) as usize;
 
+        let bg_palette = mem.read(0xFF47);
+        let c_3 = bg_palette >> 6;
+        let c_2 = (bg_palette >> 4) & 0b11;
+        let c_1 = (bg_palette >> 2) & 0b11;
+        let c_0 = bg_palette & 0b11;
+
         let y = scy + (ly as usize); 
         let mut x = scx;
         while x < (scx + 160){
@@ -121,7 +127,7 @@ impl PPU {
                     break
                 }
                 let tile_pos = tile_x + ((ty % 8) * 8);
-                let (r, g, b) = self.get_color(tile.data[tile_pos]);
+                let (r, g, b) = self.get_color(tile.data[tile_pos], c_0, c_1, c_2, c_3);
                 
                 let screen_pos = ((x - scx) + ((ly as usize) * SCREEN_WIDTH)) * 4;
 
@@ -159,7 +165,7 @@ impl PPU {
             let x = mem.read(index + 1) as i32 - 8; // Offset by 8 pixels
             let mut tile_id = mem.read(index + 2);
 
-            let sprite_height: u8 = if lcdc & 0b100 > 0 {
+            let sprite_height: i32 = if lcdc & 0b100 > 0 {
                 tile_id = tile_id & !0x1; // Ignore the lower bit
                 16
             } else {
@@ -167,15 +173,36 @@ impl PPU {
             };
 
             // If we should draw it
-            if (ly as i32) >= y && (ly as i32) < y + (sprite_height as i32) {
+            if (ly as i32) >= y && (ly as i32) < y + sprite_height {
                 let attributes = mem.read(index + 3);
+
+                let flip_y = attributes & 0b1000000 > 0;
+                let flip_x = attributes & 0b100000 > 0;
+
+                let mut sprite_line = ly as i32 - y;
+
+                if flip_y {
+                    sprite_line = sprite_height - sprite_line;
+
+
+                }
 
             }
 
         }
     }
 
-    fn get_color(&self, color: u8) -> (u8, u8, u8) {
+    fn get_color(&self, index: u8, c_0: u8, c_1: u8, c_2: u8, c_3: u8) -> (u8, u8, u8) {
+        match index {
+            0 => PPU::get_rgb(c_0),
+            1 => PPU::get_rgb(c_1),
+            2 => PPU::get_rgb(c_2),
+            3 => PPU::get_rgb(c_3),
+            _ => (0,0,0)
+        }
+    }
+
+    fn get_rgb(color: u8) -> (u8, u8, u8) {
         match color {
             0 => (0xe2, 0xf3, 0xe4),
             1 => (0x94, 0xe3, 0x44),
@@ -183,6 +210,7 @@ impl PPU {
             3 => (0x33, 0x2c, 0x50),
             _ => (0,0,0)
         }
+        
     }
 
     pub fn print_tile(&self) {
