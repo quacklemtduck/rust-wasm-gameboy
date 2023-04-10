@@ -26,6 +26,7 @@ impl PPU {
         if ly < 144 {
             // If new graphics, parse them
             if mem.new_graphics {
+                console::log_1(&"New".into());
                 self.prepare_tile_map(mem);
                 self.prepare_bg(mem);
                 // self.draw_bg_tilemap(mem, bg_ctx);
@@ -33,7 +34,7 @@ impl PPU {
             }
 
             self.draw_background_line(mem, ly);
-            //self.draw_sprite_line(mem, ly, lcdc);
+            self.draw_sprite_line(mem, ly, lcdc);
 
         }
 
@@ -166,7 +167,7 @@ impl PPU {
             let mut tile_id = mem.read(index + 2);
 
             let sprite_height: i32 = if lcdc & 0b100 > 0 {
-                tile_id = tile_id & !0x1; // Ignore the lower bit
+                tile_id = tile_id & !0x1; // Ignore the lower bit, enforced by the gameboy
                 16
             } else {
                 8
@@ -174,6 +175,10 @@ impl PPU {
 
             // If we should draw it
             if (ly as i32) >= y && (ly as i32) < y + sprite_height {
+                // if i == 39 {
+                //     console::log_1(&format!("Drawing sprite with tile {} at X: {} Y: {} {:#x}", tile_id, x, y, index + 1).into());
+                // }
+                
                 let attributes = mem.read(index + 3);
 
                 let flip_y = attributes & 0b1000000 > 0;
@@ -182,11 +187,33 @@ impl PPU {
                 let mut sprite_line = ly as i32 - y;
 
                 if flip_y {
-                    sprite_line = sprite_height - sprite_line;
-
-
+                    sprite_line = sprite_height - sprite_line - 1;
                 }
 
+                let tile = if sprite_line < 8 {self.tile_map[tile_id as usize]} else {self.tile_map[tile_id as usize + 1]};
+
+                let palette = attributes & 0b10000 > 0;
+                let palette_addr = if palette {0xFF49} else {0xFF48};
+                let obj_palette = mem.read(palette_addr);
+                let c_3 = obj_palette >> 6;
+                let c_2 = (obj_palette >> 4) & 0b11;
+                let c_1 = (obj_palette >> 2) & 0b11;
+                let c_0 = obj_palette & 0b11;
+
+                for tx in 0..8 {
+                    let tile_x = if flip_x {7 - tx} else {tx};
+                    let tile_pos = tile_x + ((sprite_line % 8) * 8);
+                    let pixel = tile.data[tile_pos as usize];
+                    if pixel == 0 {continue}
+                    if x + tx >= SCREEN_WIDTH as i32 || x + tx < 0 {continue;}
+                    let screen_pos = ((x + tx + (ly as i32 * SCREEN_WIDTH as i32)) * 4) as usize;
+                    let (r, g, b) = self.get_color(pixel, c_0, c_1, c_2, c_3);
+
+                    self.screen[screen_pos] = r;
+                    self.screen[screen_pos + 1] = g;
+                    self.screen[screen_pos + 2] = b;
+                    self.screen[screen_pos + 3] = 0xFF;
+                }
             }
 
         }

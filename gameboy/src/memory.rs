@@ -61,20 +61,23 @@ impl Memory {
         // }
 
         // If we have to re-render tiles and background
-        if loc < 0xA000 {
+        if loc < 0xA000 || loc == 0xFF42 || loc == 0xFF43 || loc == 0xFF40 {
             // if self.mem[0xFF41] & 0b11 == 3 {
             //     return
             // }
             self.new_graphics = true;
         }
 
-        if loc == 0xFF00 {
-
+        if loc == 0xFF46 {
+            //console::log_1(&"DMA".into());
+            let source = (val as usize) << 8;
+            for i in 0..0x100 {
+                self.mem[0xFE00 + i] = self.mem[source + i];
+            }
         }
 
         // Compare LY and LYC
         if loc == 0xFF44 {
-            self.new_graphics = true;
             if val == self.mem[0xFF45] {
                 self.mem[0xFF41] = self.mem[0xFF41] | 0x4;
                 // Interrupt

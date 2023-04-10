@@ -73,6 +73,8 @@ impl GameBoy {
                             if stat & 0b10000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
+                            self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b1);
+                            //console::log_1(&format!("Draw {}", self.mem.read(0xFF44)).into());
                             self.ppu.draw(&mut self.mem, ctx)
                         } else {
                             stat = stat + 2;
@@ -96,6 +98,7 @@ impl GameBoy {
                         self.cnt += 168;
                     },
                     3 => {
+                        console::log_1(&"Advance".into());
                         self.advance_line(bg_ctx);
                         stat = stat - 3;
                         self.cnt += 208;
@@ -105,6 +108,10 @@ impl GameBoy {
                     },
                     _ => console::error_1(&"Unreachable mode".into())
 
+                }
+            } else if stat & 0b11 == 1 {
+                if self.mem.read(0xFF44) >= 144 {
+                    self.advance_line(bg_ctx)
                 }
             }
             self.mem.write(0xFF41, stat);

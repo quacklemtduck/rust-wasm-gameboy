@@ -1,0 +1,1 @@
+Parsing graphics every time new graphics have been written to memory works in some games, but becomes too expensive in games that upgrade graphics a lot

@@ -526,11 +526,20 @@ impl CPU {
         let i_flags = mem.read(0xFF0F);
         let ie = mem.read(0xFFFF);
 
-        if self.halt && (i_flags & ie) == 0 {
+
+
+        // if self.halt && (i_flags & ie) == 0 {
+        //     self.halt = false;
+        // } else {
+        //     self.halt = false;
+        // }
+
+        if self.halt && self.ime {
             self.halt = false;
-            return 0
-        } else {
-            self.halt = false;
+        } else if self.halt && (i_flags & ie) != 0 {
+            self.halt = false
+        } else if self.halt {
+            return 0;
         }
 
         // Timer
@@ -552,7 +561,7 @@ impl CPU {
         }
 
         // VBlank interrupt
-        if i_flags & ie & 0b1 > 0 {
+        if i_flags & ie & 0b1 > 0 { // Noget galt her?
             self.ime = false;
             //console::log_1(&"VBlank".into());
             self.push(mem, self.get_register_16(&Register16::PC));
@@ -602,6 +611,9 @@ impl CPU {
             return v;
         }
         let instruction = mem.read(self.pc);
+        // if self.pc == 0xff82 {
+        //     console::log_1(&"Now".into());
+        // }
         self.pc += 1;
 
         // println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} DE: {:#x}", instruction, self.pc - 1, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::DE));
@@ -1582,7 +1594,9 @@ impl CPU {
             0xCD => { // CALL a16
                 let next = self.pc + 2;
                 self.push(mem, next);
-                self.pc = mem.read_16(self.pc);
+                let val = mem.read_16(self.pc);
+                //console::log_1(&format!("CD {:#x} {:#x}", val, self.pc - 1).into());
+                self.pc = val;
                 return 6
             }
             0xCE => { // ADC A, d8
@@ -1695,6 +1709,7 @@ impl CPU {
             0xE0 => { // LD (a8) A
                 let val = self.get_register_8(&Register8::A);
                 let addr = 0xff00 + (mem.read(self.pc) as u16);
+                //console::log_1(&format!("LD ({:#x}) A {:#x}", addr, self.pc - 1).into());
                 self.pc += 1;
                 mem.write(addr, val);
                 return 3

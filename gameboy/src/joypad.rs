@@ -37,7 +37,7 @@ impl Joypad {
     }
 
     fn update_joypad(&mut self, value: u8) {
-        console::log_1(&format!("Keyboard value {:#b} A: {} B: {}", value, self.a, self.b).into());
+        //console::log_1(&format!("Keyboard value {:#b} A: {} B: {}", value, self.a, self.b).into());
         self.joypad_register_flipped = value ^ 0xFF;
         self.is_dpad_type = self.joypad_register_flipped & 0b10000 > 0;
         self.is_button_type = self.joypad_register_flipped & 0b100000 > 0;
@@ -96,7 +96,7 @@ impl Joypad {
         }
 
         let state = self.get_joypad_state();
-        console::log_1(&format!("Keyboard state {state:#b}").into());
+        //console::log_1(&format!("Keyboard state {state:#b}").into());
         mem.write(0xFF00, state);
     }
 

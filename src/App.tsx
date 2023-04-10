@@ -69,7 +69,7 @@ function App() {
 
     let loop = (delta: DOMHighResTimeStamp) => {
         fpsRef.current++
-        // console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
+        console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
         lastRenderRef.current = delta
         const ctx = canvasRef?.current?.getContext("2d")
         const bgCtx = bgRef?.current?.getContext("2d")
