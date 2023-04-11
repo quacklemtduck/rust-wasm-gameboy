@@ -11,7 +11,7 @@ pub struct Memory {
 impl Memory {
     pub fn new(cart: Option<Cartridge>) -> Memory {
         let c: Cartridge = match cart {
-            None => Cartridge::New(vec![0; 1024 * 32]),
+            None => Cartridge::new(vec![0; 1024 * 32]),
             Some(x) => x
         };
         return Memory{mem: [0; 0x10000], cart: c, new_graphics: true }

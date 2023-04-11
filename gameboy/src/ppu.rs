@@ -10,12 +10,13 @@ pub struct PPU {
     tile_map: [Tile; 384],
     screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
 
-    bg: [u8; 32 * 32]
+    bg: [u8; 32 * 32],
+    window: [u8; 32 * 32],
 }
 
 impl PPU {
     pub fn new() -> PPU {
-        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], bg: [0; 32 * 32]}
+        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], bg: [0; 32 * 32], window: [0; 32 * 32]}
     }
 
     pub fn advance_line(&mut self, mem: &mut Memory) {
@@ -26,7 +27,6 @@ impl PPU {
         if ly < 144 {
             // If new graphics, parse them
             if mem.new_graphics {
-                console::log_1(&"New".into());
                 self.prepare_tile_map(mem);
                 self.prepare_bg(mem);
                 // self.draw_bg_tilemap(mem, bg_ctx);
@@ -61,10 +61,19 @@ impl PPU {
     pub fn prepare_bg(&mut self, mem: &mut Memory){
         let lcdc = mem.read(0xFF40);
         let map_area = lcdc & 0b1000 > 0;
+        let window_area = lcdc & 0b1000000 > 0;
         
         let area_addr = if map_area {0x9C00} else {0x9800};
+        let window_addr = if window_area {0x9C00} else {0x9800};
         for i in 0..1024 {
             self.bg[i] = mem.read(area_addr + i as u16);
+        }
+        if area_addr == window_addr {
+            self.window = self.bg;
+        } else {
+            for i in 0..1024 {
+                self.window[i] = mem.read(window_addr + i as u16);
+            }
         }
 
     }
@@ -101,6 +110,10 @@ impl PPU {
         let lcdc = mem.read(0xFF40);
         let data_area = lcdc & 0b10000 > 0;
 
+        let window_enable = lcdc & 0b100000 > 0;
+        let wy = if window_enable {mem.read(0xFF4A) as i32} else {0};
+        let wx = if window_enable && wy <= ly as i32 {mem.read(0xFF4B) as i32 - 7} else {0};
+
         let scy = mem.read(0xFF42) as usize;
         let scx = mem.read(0xFF43) as usize;
 
@@ -112,7 +125,7 @@ impl PPU {
 
         let y = scy + (ly as usize); 
         let mut x = scx;
-        while x < (scx + 160){
+        while x < (scx + 160 as usize){
             let tx = x % 256;
             let ty = y % 256;
             let t_index = ((tx / 8)) + ((ty / 8) * 32);
@@ -124,7 +137,7 @@ impl PPU {
             //tile.print(t_id);
 
             for tile_x in (tx % 8)..8 {
-                if x >= (scx + 160){
+                if x >= (scx + 160 as usize){
                     break
                 }
                 let tile_pos = tile_x + ((ty % 8) * 8);
@@ -138,6 +151,36 @@ impl PPU {
                 self.screen[screen_pos + 3] = 0xFF;
 
                 x += 1;
+            }
+        }
+
+        if window_enable && ly as i32 >= wy {
+            let y = ly as i32 - wy;
+            let mut x = wx;
+            while x < SCREEN_WIDTH as i32 {
+                let t_index = (((x - wx) / 8) + ((y / 8) * 32)) as usize;
+                let mut t_id = self.window[t_index] as usize;
+                if !data_area && t_id < 128 {
+                    t_id = t_id + 256
+                }
+                let tile = self.tile_map[t_id];
+                for tile_x in 0..8 {
+                    if x >= SCREEN_WIDTH as i32 {
+                        break
+                    }
+
+                    let tile_pos = tile_x + ((y % 8) * 8);
+                    let (r, g, b) = self.get_color(tile.data[tile_pos as usize], c_0, c_1, c_2, c_3);
+
+                    let screen_pos = ((x as usize) + ((ly as usize) * SCREEN_WIDTH)) * 4;
+                   
+                    self.screen[screen_pos] = r;
+                    self.screen[screen_pos + 1] = g;
+                    self.screen[screen_pos + 2] = b;
+                    self.screen[screen_pos + 3] = 0xFF;
+
+                    x += 1;
+                }
             }
         }
 

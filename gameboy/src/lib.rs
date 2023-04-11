@@ -36,7 +36,7 @@ pub struct GameBoy {
 #[wasm_bindgen]
 impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
-        let cart = Cartridge::New(data);
+        let cart = Cartridge::new(data);
         let mem = Memory::new(Some(cart));
         GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new()}
     }
@@ -98,7 +98,6 @@ impl GameBoy {
                         self.cnt += 168;
                     },
                     3 => {
-                        console::log_1(&"Advance".into());
                         self.advance_line();
                         stat = stat - 3;
                         self.cnt += 208;

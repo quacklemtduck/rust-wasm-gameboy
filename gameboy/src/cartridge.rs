@@ -1,20 +1,20 @@
-use crate::cartridge::C_Type::ROM;
+use crate::cartridge::CType::ROM;
 
 pub struct Cartridge {
     data: Vec<u8>,
-    c_type: C_Type,
+    c_type: CType,
     // Size in KiB
     rom_size: u16,
     ram_size: u16,
 
 }
 
-pub enum C_Type {
+pub enum CType {
     ROM
 }
 
 impl Cartridge {
-    pub fn New(data: Vec<u8>) -> Self {
+    pub fn new(data: Vec<u8>) -> Self {
         let c_type = match data[0x0147] {
             0x00 => ROM,
             _ => {
