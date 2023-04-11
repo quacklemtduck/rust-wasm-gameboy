@@ -4,7 +4,6 @@ import init, {GameBoy} from 'gameboy';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
-    let bgRef = useRef<HTMLCanvasElement>(null)
     let fileRef = useRef(null)
 
     const [gb, setGb] = useState<GameBoy | null>(null)
@@ -13,9 +12,10 @@ function App() {
 
     let animationRef = useRef<any>(null)
     const [paused, setPaused] = useState(true)
+    const [started, setStarted] = useState(false)
 
     let lastRenderRef = useRef(0)
-    let fpsRef = useRef(0)
+    let [fps, setFps] = useState(0)
 
     useEffect(() => {
         init().then(() => {
@@ -65,36 +65,23 @@ function App() {
         gb?.start(ctx)
         animationRef.current = requestAnimationFrame(loop)
         setPaused(false)
+        setStarted(true)
     }
 
     let loop = (delta: DOMHighResTimeStamp) => {
-        fpsRef.current++
-        console.log(`FPS: ${(1 / (delta - lastRenderRef.current)) * 1000} Rendertime: ${delta - lastRenderRef.current} Frames: ${fpsRef.current}`)
+        let fpsTmp = (1 / (delta - lastRenderRef.current)) * 1000
         lastRenderRef.current = delta
+        setFps(fpsTmp)
         const ctx = canvasRef?.current?.getContext("2d")
-        const bgCtx = bgRef?.current?.getContext("2d")
-        if (ctx == null || bgCtx == null) return;
-        gb?.set_joypad_state(0,0,0,0,1,0,0,0);
-        gb?.run(ctx, bgCtx);
+        if (ctx == null) return;
+        //gb?.set_joypad_state(0,0,0,0,1,0,0,0);
+        gb?.run(ctx);
         animationRef.current = requestAnimationFrame(loop)
     }
 
-    let isPaused = () => {
-        return animationRef.current == null
-    }
-
-  return (
-    <div className="App">
-        <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyPress={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
-        {ready &&
-            <input ref={fileRef} type={"file"} onChange={onFile} />
-        }
-        { gb != null &&
-            <button onClick={run}>Run</button>
-        }
-        
-        {
-            paused ?
+    let getPauseButton = () => {
+        return (
+            (paused) ?
             <button onClick={() => {
                 animationRef.current = requestAnimationFrame(loop)
                 setPaused(false)
@@ -104,10 +91,27 @@ function App() {
                 animationRef.current = null
                 setPaused(true)
             }}>Pause</button>
+        )
+    }
+
+  return (
+    <div className="App">
+        <p>FPS: {fps}</p>
+        <div className='container'>
+            <div className='canvas-container'>
+                <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyPress={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
+            </div>
+        {(ready && !started) &&
+            <div>
+                <input ref={fileRef} type={"file"} onChange={onFile} />
+                {gb != null && <button onClick={run}>Run</button>}
+            </div>
         }
-
-        <canvas style={{width: 256, height: 256, border: "1px solid black"}} ref={bgRef} width={256} height={256} /> 
-
+        
+        {
+            started ? getPauseButton() : null
+        }
+        </div>
     </div>
   );
 }

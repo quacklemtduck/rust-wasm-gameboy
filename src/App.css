@@ -1,5 +1,8 @@
+body {
+  background-color: #86e269;
+}
+
 .App {
-  text-align: center;
 }
 
 .App-logo {
@@ -41,5 +44,20 @@
 canvas {
   image-rendering: crisp-edges;
   width: 480px;
-  height: 432px
+  height: 432px;
+  border: 1px solid black;
+  background-color: #e2f3e4;
+  border-radius: 1px;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.canvas-container {
+  padding: 20px;
+  background-color: #3a3e45;
+  border-radius: 4px;
 }

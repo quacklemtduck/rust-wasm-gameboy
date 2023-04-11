@@ -18,7 +18,7 @@ impl PPU {
         PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], bg: [0; 32 * 32]}
     }
 
-    pub fn advance_line(&mut self, mem: &mut Memory, bg_ctx: &CanvasRenderingContext2d) {
+    pub fn advance_line(&mut self, mem: &mut Memory) {
         // println!("Advance");
         let mut ly = mem.read(0xff44);
         let lcdc = mem.read(0xff40);

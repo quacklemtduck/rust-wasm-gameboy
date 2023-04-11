@@ -58,7 +58,7 @@ impl GameBoy {
         // }
     }
 
-     pub fn run(&mut self, ctx: &CanvasRenderingContext2d, bg_ctx: &CanvasRenderingContext2d) {
+     pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 
         loop {
             self.cnt -= self.step() as i32;
@@ -99,7 +99,7 @@ impl GameBoy {
                     },
                     3 => {
                         console::log_1(&"Advance".into());
-                        self.advance_line(bg_ctx);
+                        self.advance_line();
                         stat = stat - 3;
                         self.cnt += 208;
                         if stat & 0b1000 > 0{
@@ -111,7 +111,7 @@ impl GameBoy {
                 }
             } else if stat & 0b11 == 1 {
                 if self.mem.read(0xFF44) >= 144 {
-                    self.advance_line(bg_ctx)
+                    self.advance_line()
                 }
             }
             self.mem.write(0xFF41, stat);
@@ -127,8 +127,8 @@ impl GameBoy {
         self.cpu.run(&mut self.mem)
     }
 
-    pub fn advance_line(&mut self, bg_ctx: &CanvasRenderingContext2d) {
-        self.ppu.advance_line(&mut self.mem, bg_ctx);
+    pub fn advance_line(&mut self) {
+        self.ppu.advance_line(&mut self.mem);
     }
 
     #[wasm_bindgen(skip)]
