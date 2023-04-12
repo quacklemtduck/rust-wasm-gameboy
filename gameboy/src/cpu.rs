@@ -63,14 +63,18 @@ impl CPU {
 
     // Checks if the h flag should be set when adding a and b
     fn h_test(a: u8, b: u8) -> bool {
-        return (a & 0xf) + (b & 0xf) > 0xf
+        let result = ((a & 0x0f) + (b & 0x0f)) & 0x10;
+        return result != 0x00;
     }
     fn h_test_16(a: u16, b: u16) -> bool {
-        return (a & 0xfff) + (b & 0xfff) > 0xfff;
+        let (result, overflow) = a.overflowing_add(b);
+        let half_carry_xor = a ^ b ^ result;
+        let half_carry_and = half_carry_xor & 0x1000;
+        return half_carry_and != 0x00;
     }
 
     fn h_test_sub(a: u8, b: u8) -> bool {
-        return (a & 0xf).wrapping_sub(b & 0xf) > 0x7f
+        return (b & 0x0f) > (a & 0x0f);
     }
 
     fn get_register_8(&self, reg: &Register8) -> u8 {
@@ -200,12 +204,12 @@ impl CPU {
     fn add_hl(&mut self, reg: &Register16) {
         let reg_val = self.get_register_16(reg);
         let hl = self.get_register_16(&Register16::HL);
-        let (value, overflow) = reg_val.overflowing_add(hl);
+        let (value, overflow) = hl.overflowing_add(reg_val);
         self.set_register_16(&Register16::HL, value);
 
         self.flags.n = 0;
         if overflow {self.flags.cy = 1} else { self.flags.cy = 0 }
-        if CPU::h_test_16(reg_val, hl) {
+        if CPU::h_test_16(hl, reg_val) {
             self.flags.h = 1;
         } else {
             self.flags.h = 0;
@@ -290,7 +294,7 @@ impl CPU {
         value = value2;
         carry  = carry || carry2;
         self.set_register_8(&Register8::A, value);
-        if (orig & 0xf) + (val &0xf) + cy > 0xf {
+        if ((orig ^ val ^ value) & 0x10) != 0 {
             self.flags.h = 1;
         } else {
             self.flags.h = 0; // TODO In case of bugs, remove?
@@ -316,7 +320,7 @@ impl CPU {
         value = value2;
         carry  = carry || carry2;
         self.set_register_8(&Register8::A, value);
-        if (orig & 0xf).wrapping_sub(val & 0xf).wrapping_sub(cy) > 0x7f {
+        if ((orig ^ val ^ value) & 0x10) != 0 {
             self.flags.h = 1;
         } else {
             self.flags.h = 0; // TODO In case of bugs, remove?
@@ -383,7 +387,7 @@ impl CPU {
             self.flags.z = 0;
         }
         self.flags.n = 1;
-        if (a & 0xF) < (b & 0xF) {
+        if CPU::h_test_sub(a, b) {
             self.flags.h = 1;
         } else {
             self.flags.h = 0;
@@ -469,9 +473,10 @@ impl CPU {
     }
 
     fn sl(&mut self, reg: &Register8) {
-        let val = self.get_register_8(reg) << 1;
+        let orig = self.get_register_8(reg);
+        let val = orig << 1;
         self.set_register_8(reg, val);
-        self.flags.cy = val >> 7;
+        self.flags.cy = if (orig & 0x80) == 0x80 {1}else{0};
         self.flags.z = if val == 0 {1} else {0};
         self.flags.n = 0;
         self.flags.h = 0;
@@ -481,7 +486,7 @@ impl CPU {
         let orig = self.get_register_8(reg);
         let val = (orig >> 1) | (orig & 0x80);
         self.set_register_8(reg, val);
-        self.flags.cy = val & 0x01;
+        self.flags.cy = if (orig & 0x01) == 0x01 {1} else {0};
         self.flags.z = if val == 0 {1} else {0};
         self.flags.n = 0;
         self.flags.h = 0;
@@ -491,7 +496,7 @@ impl CPU {
         let orig = self.get_register_8(reg);
         let val = orig >> 1;
         self.set_register_8(reg, val);
-        self.flags.cy = val & 0x01;
+        self.flags.cy = if (orig & 0x01) == 0x01 {1} else {0};
         self.flags.z = if val == 0 {1} else {0};
         self.flags.n = 0;
         self.flags.h = 0;
@@ -614,7 +619,9 @@ impl CPU {
             return v;
         }
         let instruction = mem.read(self.pc);
-        //console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        if instruction == 0x27 {
+            console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        }
         println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
@@ -801,44 +808,35 @@ impl CPU {
                 return 2
             }
             0x27 => { // DAA
-                let orig =self.get_register_8(&Register8::A);
-                let mut value = orig;
-                let mut carry = false;
-                if self.flags.h == 0 {
-                    let low = orig & 0x0f;
-                    if low > 9 || (self.flags.h > 0){
-                        let (v, c) = value.overflowing_add(6);
-                        value = v;
-                        carry = carry || c;
+                let mut a = self.get_register_8(&Register8::A);
+
+                if self.flags.n == 0 {
+                    if self.flags.h > 0 || a & 0x0f > 0x09 {
+                        a += 0x6;
                     }
-                    if value > 0x9f || self.flags.cy > 0 {
-                        let (v, c) = value.overflowing_add(0x60);
-                        value = v;
-                        carry = carry || c;
+                    if self.flags.cy > 0 || a > 0x9F {
+                        a += 0x60;
+                        self.flags.cy = 1;
                     }
                 } else {
                     if self.flags.h > 0 {
-                        let (v, _c) = value.overflowing_sub(6);
-                        value = v;
+                        a -= 0x6;
                     }
                     if self.flags.cy > 0 {
-                        let (v, c) = value.overflowing_sub(0x60);
-                        value = v;
-                        carry = carry || c;
+                        a -= 0x60;
                     }
                 }
-                self.set_register_8(&Register8::A, value);
-                self.flags.h = 0;
-                if value == 0 {
+
+                if a & 0xff == 0 {
                     self.flags.z = 1;
                 } else {
                     self.flags.z = 0;
                 }
-                if carry {
-                    self.flags.cy = 1;
-                } else {
-                    self.flags.cy = 0;
-                }
+
+                self.flags.h = 0;
+
+                self.set_register_8(&Register8::A, a);
+
                 return 1
             }
             0x28 => { // JR Z, s8
@@ -1752,15 +1750,16 @@ impl CPU {
                 self.set_register_16(&Register16::SP, value);
                 self.flags.z = 0;
                 self.flags.n = 0;
-                if (orig & 0xff) + ((val as u16) & 0xff) > 0xff {
-                    self.flags.h = 1;
+                if sub {
+                    let result = orig as i32 - abs as i32;
+                    let flag_xor = orig as i32 ^ (-(abs as i32)) ^ result;
+                    self.flags.h = if (flag_xor & 0x10) != 0 {1} else {0};
+                    self.flags.cy = if (flag_xor & 0x100) != 0 {1} else {0};
                 } else {
-                    self.flags.h = 0;
-                }
-                if (orig as u32) + (val as u32) > 0xffff {
-                    self.flags.cy = 1;
-                } else {
-                    self.flags.cy = 0;
+                    let result = orig as i32 + abs as i32;
+                    let flag_xor = orig as i32 ^ (abs as i32) ^ result;
+                    self.flags.h = if (flag_xor & 0x10) != 0 {1} else {0};
+                    self.flags.cy = if (flag_xor & 0x100) != 0 {1} else {0};
                 }
                 return 4
             }
@@ -1802,7 +1801,7 @@ impl CPU {
                 self.flags.n = (lower & 0b01000000) >> 6;
                 self.flags.h = (lower & 0b00100000) >> 5;
                 self.flags.cy = (lower & 0b00010000) >> 4;
-                self.flags.lower = lower & 0x0F;
+                //self.flags.lower = lower & 0x0F;
                 return 3
             }
             0xF2 => { // LD A, (C)
@@ -1842,15 +1841,16 @@ impl CPU {
                 self.set_register_16(&Register16::HL, value);
                 self.flags.z = 0;
                 self.flags.n = 0;
-                if (orig & 0xff) + ((s8 as u16) & 0xff) > 0xff {
-                    self.flags.h = 1;
+                if sub {
+                    let result = orig as i32 - abs as i32;
+                    let flag_xor = orig as i32 ^ (-(abs as i32)) ^ result;
+                    self.flags.h = if (flag_xor & 0x10) != 0 {1} else {0};
+                    self.flags.cy = if (flag_xor & 0x100) != 0 {1} else {0};
                 } else {
-                    self.flags.h = 0;
-                }
-                if (orig as u32) + (s8 as u32) > 0xffff {
-                    self.flags.cy = 1;
-                } else {
-                    self.flags.cy = 0;
+                    let result = orig as i32 + abs as i32;
+                    let flag_xor = orig as i32 ^ (abs as i32) ^ result;
+                    self.flags.h = if (flag_xor & 0x10) != 0 {1} else {0};
+                    self.flags.cy = if (flag_xor & 0x100) != 0 {1} else {0};
                 }
                 return 3
             }
@@ -2526,7 +2526,33 @@ mod cpu_tests {
 
     #[test]
     fn pop_af_blargg() {
+        let mut mem = Memory::new(None);
+        let mut cpu = CPU::new();
+        cpu.simulate_bootloader();
+        mem.simulate_bootloader();
 
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize] = 0x01; // LD BC 0x1200
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 1] = 0x00;
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 2] = 0x12;
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 3] = 0xc5; // PUSH BC
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 4] = 0xf1; // POP AF
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 5] = 0xf5; // PUSH AF
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 6] = 0xd1; // POP DE
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 7] = 0x79; // LD AC
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 8] = 0xe6; // AND 0xF0
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 9] = 0xf0;
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 10] = 0xbb; // CP E
+
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+
+        assert_eq!(cpu.flags.z, 1);
     }
 
     #[test]
