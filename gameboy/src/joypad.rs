@@ -36,71 +36,67 @@ impl Joypad {
         Joypad { up: false, right: false, down: false, left: false, a: false, b: false, select: false, start: false, is_dpad_type: false, is_button_type: false, joypad_register_flipped: 0 }
     }
 
-    fn update_joypad(&mut self, value: u8) {
+    pub fn update_joypad(&mut self, value: u8) {
         //console::log_1(&format!("Keyboard value {:#b} A: {} B: {}", value, self.a, self.b).into());
         self.joypad_register_flipped = value ^ 0xFF;
         self.is_dpad_type = self.joypad_register_flipped & 0b10000 > 0;
         self.is_button_type = self.joypad_register_flipped & 0b100000 > 0;
     }
 
-    pub fn set_joypad_state(&mut self, up: i32, right: i32, down: i32, left: i32, a: i32, b: i32, select: i32, start: i32, mem: &mut Memory) {
-
-        self.update_joypad(mem.read(0xFF00));
-
+    pub fn set_joypad_state(&mut self, up: i32, right: i32, down: i32, left: i32, a: i32, b: i32, select: i32, start: i32) -> bool {
+        let mut request_interrupt = false;
         if up > 0 {
-            self.press_button(&Button::Up, mem);
+            request_interrupt = self.press_button(&Button::Up);
         } else {
-            self.release_button(&Button::Up, mem)
+            self.release_button(&Button::Up);
         }
 
         if right > 0 {
-            self.press_button(&Button::Right, mem);
+            request_interrupt = self.press_button(&Button::Right);
         } else {
-            self.release_button(&Button::Right, mem)
+            self.release_button(&Button::Right);
         }
 
         if down > 0 {
-            self.press_button(&Button::Down, mem);
+            request_interrupt = self.press_button(&Button::Down);
         } else {
-            self.release_button(&Button::Down, mem)
+            self.release_button(&Button::Down);
         }
 
         if left > 0 {
-            self.press_button(&Button::Left, mem);
+            request_interrupt = self.press_button(&Button::Left);
         } else {
-            self.release_button(&Button::Left, mem)
+            self.release_button(&Button::Left);
         }
 
         if a > 0 {
-            self.press_button(&Button::A, mem);
+            request_interrupt = self.press_button(&Button::A);
         } else {
-            self.release_button(&Button::A, mem)
+            self.release_button(&Button::A);
         }
 
         if b > 0 {
-            self.press_button(&Button::B, mem);
+            request_interrupt = self.press_button(&Button::B);
         } else {
-            self.release_button(&Button::B, mem)
+            self.release_button(&Button::B);
         }
 
         if select > 0 {
-            self.press_button(&Button::Select, mem);
+            request_interrupt = self.press_button(&Button::Select);
         } else {
-            self.release_button(&Button::Select, mem)
+            self.release_button(&Button::Select);
         }
 
         if start > 0 {
-            self.press_button(&Button::Start, mem);
+            request_interrupt = self.press_button(&Button::Start);
         } else {
-            self.release_button(&Button::Start, mem)
+            self.release_button(&Button::Start);
         }
 
-        let state = self.get_joypad_state();
-        //console::log_1(&format!("Keyboard state {state:#b}").into());
-        mem.write(0xFF00, state);
+        return request_interrupt
     }
 
-    fn get_joypad_state(&self) -> u8 {
+    pub fn get_joypad_state(&self) -> u8 {
 
         let mut register = self.joypad_register_flipped;
 
@@ -161,7 +157,7 @@ impl Joypad {
         return register;
     }
 
-    fn press_button(&mut self, button: &Button, mem: &mut Memory) {
+    fn press_button(&mut self, button: &Button) -> bool {
         let mut is_button_state_changing = false;
         if !self.get_button_state(button) {
             is_button_state_changing = true;
@@ -185,17 +181,13 @@ impl Joypad {
                 should_request_interrupt = true;
             }
 
-            if should_request_interrupt {
-                let mut if_flag = mem.read(0xFF0F);
-                if_flag = if_flag | 0b10000;
-                mem.write(0xFF0F, if_flag);
-            }
+            return should_request_interrupt;
         }
 
-
+        return false;
     }
 
-    fn release_button(&mut self, button: &Button, mem: &mut Memory) {
+    fn release_button(&mut self, button: &Button) {
         self.set_button_state(button, false)
     }
 

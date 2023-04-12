@@ -17,6 +17,15 @@ function App() {
     let lastRenderRef = useRef(0)
     let [fps, setFps] = useState(0)
 
+    let ARef = useRef(1)
+    let BRef = useRef(1)
+    let UpRef = useRef(1)
+    let RightRef = useRef(1)
+    let DownRef = useRef(1)
+    let LeftRef = useRef(1)
+    let SelectRef = useRef(1)
+    let StartRef = useRef(1)
+
     useEffect(() => {
         init().then(() => {
             setReady(true)
@@ -44,18 +53,64 @@ function App() {
     }
 
     let onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
-
-        if (e.key === 's') {
-        // console.log(e)
-            gb?.set_joypad_state(0,0,0,0,1,0,0,0)
+        console.log(e)
+        if (e.code === 'ArrowUp') {
+            UpRef.current = 0;
+        }
+        else if (e.code === 'ArrowRight') {
+            RightRef.current = 0;
+        }
+        else if (e.code === 'ArrowDown') {
+            DownRef.current = 0;
+        }
+        else if (e.code === 'ArrowLeft') {
+            LeftRef.current = 0;
+        }
+        else if (e.code === 'ArrowUp') {
+            UpRef.current = 0;
+        }
+        else if (e.code === 'KeyS') {
+            ARef.current = 0;
+        }
+        else if (e.code === 'KeyA') {
+            BRef.current = 0;
+        }
+        else if (e.code === 'Period') {
+            SelectRef.current = 0;
+        }
+        else if (e.code === 'Enter') {
+            StartRef.current = 0;
         }
     }
 
     let onKeyUp = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
 
-        if (e.key === 's') {
-        console.log(e)
-            gb?.set_joypad_state(0,0,0,0,0,0,0,0)
+        if (e.code === 'ArrowUp') {
+            UpRef.current = 1;
+        }
+        else if (e.code === 'ArrowRight') {
+            RightRef.current = 1;
+        }
+        else if (e.code === 'ArrowDown') {
+            DownRef.current = 1;
+        }
+        else if (e.code === 'ArrowLeft') {
+            LeftRef.current = 1;
+        }
+        else if (e.code === 'ArrowUp') {
+            UpRef.current = 1;
+        }
+        else if (e.code === 'KeyS') {
+            ARef.current = 1;
+        }
+        else if (e.code === 'KeyA') {
+            BRef.current = 1;
+        }
+        else if (e.code === 'Period') {
+            SelectRef.current = 1;
+        }
+        else if (e.code === 'Enter') {
+            StartRef.current = 1;
         }
     }
 
@@ -74,7 +129,7 @@ function App() {
         setFps(fpsTmp)
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
-        //gb?.set_joypad_state(0,0,0,0,1,0,0,0);
+        gb?.set_joypad_state(UpRef.current, RightRef.current, DownRef.current, LeftRef.current, ARef.current, BRef.current, SelectRef.current, StartRef.current);
         gb?.run(ctx);
         animationRef.current = requestAnimationFrame(loop)
     }
@@ -99,7 +154,7 @@ function App() {
         <p>FPS: {fps}</p>
         <div className='container'>
             <div className='canvas-container'>
-                <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyPress={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
+                <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyDown={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
             </div>
         {(ready && !started) &&
             <div>

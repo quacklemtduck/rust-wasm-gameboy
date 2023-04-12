@@ -82,7 +82,10 @@ impl CPU {
                 Register8::D => self.de.sub.high,
                 Register8::E => self.de.sub.low,
                 Register8::H => self.hl.sub.high,
-                Register8::L => self.hl.sub.low
+                Register8::L => self.hl.sub.low,
+                Register8::F => {
+                    return ((self.flags.z << 7) | (self.flags.n << 6) | (self.flags.h << 5) | (self.flags.cy << 4) | self.flags.lower) as u8;
+                }
             }
         }
     }
@@ -107,7 +110,8 @@ impl CPU {
             Register8::D => self.de.sub.high = val,
             Register8::E => self.de.sub.low = val,
             Register8::H => self.hl.sub.high = val,
-            Register8::L => self.hl.sub.low = val
+            Register8::L => self.hl.sub.low = val,
+            Register8::F => todo!(),
         }
     }
 
@@ -526,20 +530,19 @@ impl CPU {
         let i_flags = mem.read(0xFF0F);
         let ie = mem.read(0xFFFF);
 
-
-
-        // if self.halt && (i_flags & ie) == 0 {
-        //     self.halt = false;
-        // } else {
-        //     self.halt = false;
-        // }
+        let div = mem.read(0xff04);
+        if div == 0xff {
+            mem.write(0xff04, 0);
+        } else {
+            mem.write(0xff04, div + 1);
+        }
 
         if self.halt && self.ime {
             self.halt = false;
         } else if self.halt && (i_flags & ie) != 0 {
             self.halt = false
         } else if self.halt {
-            return 0;
+            //return 0;
         }
 
         // Timer
@@ -611,12 +614,10 @@ impl CPU {
             return v;
         }
         let instruction = mem.read(self.pc);
-        // if self.pc == 0xff82 {
-        //     console::log_1(&"Now".into());
-        // }
+        //console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
-        // println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} DE: {:#x}", instruction, self.pc - 1, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::DE));
 
         match instruction {
             0x00 => {
@@ -2342,7 +2343,8 @@ enum Register8 {
     D,
     E,
     H,
-    L
+    L,
+    F
 }
 
 enum Register16 {
@@ -2487,14 +2489,44 @@ mod cpu_tests {
             let mut cpu = CPU::new();
             cpu.simulate_bootloader();
             mem.simulate_bootloader();
-            cpu.set_register_16(&Register16::BC, 99);
-            mem.write(cpu.get_register_16(&Register16::PC), 0xC5);
-            mem.write(cpu.get_register_16(&Register16::PC) + 1, 0xC1);
+            cpu.set_register_16(&Register16::BC, 0xabcd);
+            mem.cart.data[cpu.get_register_16(&Register16::PC) as usize] = 0xC5;
+            mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 1] = 0xC1;
             cpu.run(&mut mem);
             cpu.set_register_16(&Register16::BC, 5);
             assert_eq!(cpu.get_register_16(&Register16::BC), 5);
             cpu.run(&mut mem);
-            assert_eq!(cpu.get_register_16(&Register16::BC), 99);
+            assert_eq!(cpu.get_register_16(&Register16::BC), 0xabcd);
+    }
+
+    #[test]
+    fn pop_af(){
+        let mut mem = Memory::new(None);
+        let mut cpu = CPU::new();
+        cpu.simulate_bootloader();
+        mem.simulate_bootloader();
+
+        cpu.set_register_16(&Register16::BC, 0xabcd);
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize] = 0xC5;
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 1] = 0xF1;
+        
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 2] = 0xF5;
+        mem.cart.data[cpu.get_register_16(&Register16::PC) as usize + 3] = 0xC1;
+        cpu.run(&mut mem); // Push BC
+        cpu.run(&mut mem); // Pop AF
+        println!("A: {:#x} F: {:#x}", cpu.get_register_8(&Register8::A), cpu.get_register_8(&Register8::F));
+        assert_eq!(cpu.get_register_8(&Register8::A), 0xab);
+        assert_eq!(cpu.get_register_8(&Register8::F), 0xcd);
+        cpu.set_register_8(&Register8::A, 0xac);
+        cpu.run(&mut mem);
+        cpu.run(&mut mem);
+        assert_eq!(cpu.get_register_16(&Register16::BC), 0xaccd);
+        
+    }
+
+    #[test]
+    fn pop_af_blargg() {
+
     }
 
     #[test]
@@ -2565,4 +2597,6 @@ mod cpu_tests {
         assert_eq!(cpu.get_register_8(&Register8::L), 0x80);
         assert_eq!(cpu.get_register_8(&Register8::A), 0x80);
     }
+
+    
 }

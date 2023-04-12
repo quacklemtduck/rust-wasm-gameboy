@@ -1,22 +1,31 @@
-use crate::cartridge::CType::ROM;
+use crate::cartridge::CType::*;
 
 pub struct Cartridge {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
     c_type: CType,
     // Size in KiB
     rom_size: u16,
     ram_size: u16,
 
+    ram_enable: bool,
+    rom_bank: u8
+
 }
 
 pub enum CType {
-    ROM
+    Rom,
+    Mbc1,
+    Mbc1Ram,
+    Mbc1RamBattery
 }
 
 impl Cartridge {
     pub fn new(data: Vec<u8>) -> Self {
         let c_type = match data[0x0147] {
-            0x00 => ROM,
+            0x00 => Rom,
+            0x01 => Mbc1,
+            0x02 => Mbc1Ram,
+            0x03 => Mbc1RamBattery,
             _ => {
                 panic!("Rom type not implemented!")
             },
@@ -36,6 +45,8 @@ impl Cartridge {
             c_type,
             rom_size,
             ram_size,
+            ram_enable: false,
+            rom_bank: 1
         }
     }
 
@@ -51,6 +62,17 @@ impl Cartridge {
     }
 
     pub fn write(&mut self, loc: u16, val: u8){
+        if loc < 2000 {
+            if val & 0x0F == 0x0A {
+                self.ram_enable = true;
+            }else{
+                self.ram_enable = false;
+            }
+        }
+
+        if loc < 0x8000 {
+            return
+        }
         self.data[loc as usize] = val
     }
 

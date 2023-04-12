@@ -60,6 +60,7 @@ impl GameBoy {
 
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 
+        let mut count_1 = 0;
         loop {
             self.cnt -= self.step() as i32;
             let mut stat = self.mem.read(0xFF41);
@@ -109,9 +110,10 @@ impl GameBoy {
 
                 }
             } else if stat & 0b11 == 1 {
-                if self.mem.read(0xFF44) >= 144 {
+                if count_1 % 456 == 0 {
                     self.advance_line()
                 }
+                count_1 += 1;
             }
             self.mem.write(0xFF41, stat);
         }
@@ -119,7 +121,7 @@ impl GameBoy {
      }
 
      pub fn set_joypad_state(&mut self, up: i32, right: i32, down: i32, left: i32, a: i32, b: i32, select: i32, start: i32) {
-        self.joypad.set_joypad_state(up, right, down, left, a, b, select, start, &mut self.mem)
+        self.mem.set_joypad_state(up, right, down, left, a, b, select, start)
      }
 
     pub fn step(&mut self) -> u8 {
