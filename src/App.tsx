@@ -17,14 +17,14 @@ function App() {
     let lastRenderRef = useRef(0)
     let [fps, setFps] = useState(0)
 
-    let ARef = useRef(1)
-    let BRef = useRef(1)
-    let UpRef = useRef(1)
-    let RightRef = useRef(1)
-    let DownRef = useRef(1)
-    let LeftRef = useRef(1)
-    let SelectRef = useRef(1)
-    let StartRef = useRef(1)
+    let ARef = useRef(0)
+    let BRef = useRef(0)
+    let UpRef = useRef(0)
+    let RightRef = useRef(0)
+    let DownRef = useRef(0)
+    let LeftRef = useRef(0)
+    let SelectRef = useRef(0)
+    let StartRef = useRef(0)
 
     useEffect(() => {
         init().then(() => {
@@ -55,37 +55,6 @@ function App() {
     let onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
         console.log(e)
         if (e.code === 'ArrowUp') {
-            UpRef.current = 0;
-        }
-        else if (e.code === 'ArrowRight') {
-            RightRef.current = 0;
-        }
-        else if (e.code === 'ArrowDown') {
-            DownRef.current = 0;
-        }
-        else if (e.code === 'ArrowLeft') {
-            LeftRef.current = 0;
-        }
-        else if (e.code === 'ArrowUp') {
-            UpRef.current = 0;
-        }
-        else if (e.code === 'KeyS') {
-            ARef.current = 0;
-        }
-        else if (e.code === 'KeyA') {
-            BRef.current = 0;
-        }
-        else if (e.code === 'Period') {
-            SelectRef.current = 0;
-        }
-        else if (e.code === 'Enter') {
-            StartRef.current = 0;
-        }
-    }
-
-    let onKeyUp = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
-
-        if (e.code === 'ArrowUp') {
             UpRef.current = 1;
         }
         else if (e.code === 'ArrowRight') {
@@ -111,6 +80,37 @@ function App() {
         }
         else if (e.code === 'Enter') {
             StartRef.current = 1;
+        }
+    }
+
+    let onKeyUp = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
+
+        if (e.code === 'ArrowUp') {
+            UpRef.current = 0;
+        }
+        else if (e.code === 'ArrowRight') {
+            RightRef.current = 0;
+        }
+        else if (e.code === 'ArrowDown') {
+            DownRef.current = 0;
+        }
+        else if (e.code === 'ArrowLeft') {
+            LeftRef.current = 0;
+        }
+        else if (e.code === 'ArrowUp') {
+            UpRef.current = 0;
+        }
+        else if (e.code === 'KeyS') {
+            ARef.current = 0;
+        }
+        else if (e.code === 'KeyA') {
+            BRef.current = 0;
+        }
+        else if (e.code === 'Period') {
+            SelectRef.current = 0;
+        }
+        else if (e.code === 'Enter') {
+            StartRef.current = 0;
         }
     }
 

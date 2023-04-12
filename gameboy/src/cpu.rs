@@ -2,6 +2,8 @@ use web_sys::console;
 
 use crate::memory::Memory;
 
+
+const HISTORY_LIMIT: usize = 20;
 pub struct CPU {
     a: u8,
     flags: Flags,
@@ -11,7 +13,12 @@ pub struct CPU {
     sp: u16,
     pc: u16,
     ime: bool,
-    halt: bool
+    halt: bool,
+
+    history: [(u16, u8); HISTORY_LIMIT],
+    h_i: usize,
+    pushs: u32,
+    pops: u32
 }
 
 impl CPU {
@@ -31,7 +38,11 @@ impl CPU {
             sp: 0,
             pc: 0,
             ime: false,
-            halt: false
+            halt: false,
+            history: [(0,0); HISTORY_LIMIT],
+            h_i: 0,
+            pushs: 0,
+            pops: 0
         }
     }
 
@@ -400,6 +411,7 @@ impl CPU {
     }
 
     fn pop(&mut self, mem: &mut Memory) -> u16{
+        self.pops += 1;
         let addr = self.get_register_16(&Register16::SP);
         let value = mem.read_16(addr);
         self.set_register_16(&Register16::SP, addr + 2);
@@ -407,6 +419,9 @@ impl CPU {
     }
 
     fn push(&mut self, mem: &mut Memory, value: u16) {
+        self.pushs += 1;
+        let taddr = self.pc - 1;
+        //console::log_1(&format!("Push {:#x} SP: {:#x}", value, self.sp - 2).into());
         let addr = self.get_register_16(&Register16::SP) - 2;
         mem.write_16(addr, value);
         self.set_register_16(&Register16::SP, addr);
@@ -549,19 +564,20 @@ impl CPU {
         } else if self.halt && (i_flags & ie) != 0 {
             self.halt = false
         } else if self.halt {
-            //return 0;
+            //return 1;
         }
 
         // Timer
-        let tima = mem.read(0xFF05);
-        if tima == 0xFF {
-            mem.write(0xFF05, mem.read(0xFF06));
-            mem.write(0xFF0F, i_flags | 0b100)
-        } else {
-            if mem.read(0xFF07) & 0b100 > 0 {
+        if mem.read(0xFF07) & 0b100 > 0 {
+            let tima = mem.read(0xFF05);
+            if tima == 0xFF {
+                mem.write(0xFF05, mem.read(0xFF06));
+                mem.write(0xFF0F, i_flags | 0b100)
+            } else {
                 mem.write(0xFF05, tima + 1);
             }
         }
+        
 
         if !self.ime {
             return 0
@@ -603,7 +619,7 @@ impl CPU {
         // Input
         if i_flags & ie & 0b10000 > 0{
             self.ime = false;
-            console::log_1(&"Input".into());
+            //console::log_1(&"Input".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0060);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b10000);
@@ -621,9 +637,11 @@ impl CPU {
             return v;
         }
         let instruction = mem.read(self.pc);
-        if instruction == 0x27 {
-            console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
-        }
+        self.history[self.h_i] = (self.pc, instruction);
+        self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
+        //if instruction == 0x31 || instruction == 0x33 || instruction == 0x3B || instruction == 0xE8 || instruction == 0xF9{
+        //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        //}
         println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
@@ -667,7 +685,7 @@ impl CPU {
             0x08 => { // LD (a16), SP
                 let a16 = mem.read_16(self.pc);
                 self.pc += 2;
-                mem.write_16(a16, self.sp);
+                mem.write_16(a16, self.get_register_16(&Register16::SP));
                 return 5
             }
             0x09 => { // ADD HL, BC
@@ -896,6 +914,7 @@ impl CPU {
             }
             0x31 => { // LD SP, d16
                 let d16 = mem.read_16(self.pc);
+                console::log_1(&format!("d16: {:#x}", d16).into());
                 self.pc += 2;
                 self.set_register_16(&Register16::SP, d16);
                 return 3
@@ -946,7 +965,7 @@ impl CPU {
                 return 2
             }
             0x3A => { // LD A, (HL-)
-                let val = mem.read(self.get_register_16(&Register16::DE));
+                let val = mem.read(self.get_register_16(&Register16::HL));
                 self.set_register_8(&Register8::A, val);
                 self.dec_register_16(&Register16::HL);
                 return 2
@@ -1885,7 +1904,13 @@ impl CPU {
             }
 
             _ => {
-                console::log_1(&format!("Unsupported instruction: 0x{:02x} Address: {:#x}", instruction, self.pc - 1).into());
+                console::log_1(&format!("Unsupported instruction: 0x{:02x} Address: {:#x}, Push: {}, Pops: {}, Total: {}", instruction, self.pc - 1, self.pushs, self.pops, self.pushs - self.pops).into());
+                console::log_1(&format!("History:",).into());
+                for i in 0..HISTORY_LIMIT {
+                    let index = (self.h_i + i) % HISTORY_LIMIT;
+                    let (addr, inst) = self.history[index];
+                    console::log_1(&format!("Address: {:#x} Instruction: {:#x}", addr, inst).into());
+                }
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
                 return 0
@@ -2082,7 +2107,7 @@ impl CPU {
                 let orig = mem.read(addr);
                 let val = orig << 1;
                 mem.write(addr,val);
-                self.flags.cy = val >> 7;
+                self.flags.cy = if (orig & 0x80) == 0x80 {1}else{0};
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
@@ -2121,7 +2146,7 @@ impl CPU {
                 let orig = mem.read(addr);
                 let val = (orig >> 1) | (orig & 0x80);
                 mem.write(addr,val);
-                self.flags.cy = val & 0x01;
+                self.flags.cy = if (orig & 0x01) == 0x01 {1} else {0};
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
@@ -2199,7 +2224,7 @@ impl CPU {
                 let orig = mem.read(addr);
                 let val = orig >> 1;
                 mem.write(addr,val);
-                self.flags.cy = val & 0x01;
+                self.flags.cy = if (orig & 0x01) == 0x01 {1} else {0};
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
@@ -2237,7 +2262,9 @@ impl CPU {
                 let bit = (instruction - 0x46) / 0x08;
                 let addr = self.get_register_16(&Register16::HL);
                 let val = mem.read(addr);
-                self.flags.z = if (val & (1 << bit)) != 0 {1} else {0};
+                let test = 0x01 << bit;
+                let result = val & test;
+                self.flags.z = if result == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 1;
                 return 4
