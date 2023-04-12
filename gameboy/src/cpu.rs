@@ -504,7 +504,9 @@ impl CPU {
 
     fn bit(&mut self, reg: &Register8, bit: u8) {
         let val = self.get_register_8(reg);
-        self.flags.z = if (val & (1 << bit)) != 0 {1} else {0};
+        let test = 0x01 << bit;
+        let result = val & test;
+        self.flags.z = if result == 0 {1} else {0};
         self.flags.n = 0;
         self.flags.h = 1;
     }
