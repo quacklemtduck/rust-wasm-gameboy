@@ -169,6 +169,11 @@ impl PPU {
                         break
                     }
 
+                    if x < 0 { // Fixes inventory menu in Legend of Zelda
+                        x += 1;
+                        continue
+                    }
+
                     let tile_pos = tile_x + ((y % 8) * 8);
                     let (r, g, b) = self.get_color(tile.data[tile_pos as usize], c_0, c_1, c_2, c_3);
 
