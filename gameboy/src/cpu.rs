@@ -18,7 +18,10 @@ pub struct CPU {
     history: [(u16, u8); HISTORY_LIMIT],
     h_i: usize,
     pushs: u32,
-    pops: u32
+    pops: u32,
+
+    div_counter: u16,
+    timer_counter: u16,
 }
 
 impl CPU {
@@ -42,7 +45,9 @@ impl CPU {
             history: [(0,0); HISTORY_LIMIT],
             h_i: 0,
             pushs: 0,
-            pops: 0
+            pops: 0,
+            div_counter: 0,
+            timer_counter: 0,
         }
     }
 
@@ -548,16 +553,31 @@ impl CPU {
         self.flags.h = 0;
     }
 
+    fn get_timer_rate(timer_control: u8) -> u16 {
+        match timer_control & 0b11 {
+            0 => 1024,
+            1 => 16,
+            2 => 64,
+            3 => 256,
+            _ => 256
+        }
+    }
+
     fn handle_interrupt(&mut self, mem: &mut Memory) -> u8 {
         let i_flags = mem.read(0xFF0F);
         let ie = mem.read(0xFFFF);
 
-        let div = mem.read(0xff04);
-        if div == 0xff {
-            mem.write(0xff04, 0);
-        } else {
-            mem.write(0xff04, div + 1);
+        self.div_counter += 1;
+        if self.div_counter >= 256 {
+            self.div_counter = 0;
+            let div = mem.read(0xff04);
+            if div == 0xff {
+                mem.write(0xff04, 0);
+            } else {
+                mem.write(0xff04, div + 1);
+            }
         }
+        
 
         if self.halt && self.ime {
             self.halt = false;
@@ -568,13 +588,19 @@ impl CPU {
         }
 
         // Timer
-        if mem.read(0xFF07) & 0b100 > 0 {
-            let tima = mem.read(0xFF05);
-            if tima == 0xFF {
-                mem.write(0xFF05, mem.read(0xFF06));
-                mem.write(0xFF0F, i_flags | 0b100)
-            } else {
-                mem.write(0xFF05, tima + 1);
+        let timer_control = mem.read(0xFF07);
+        if timer_control & 0b100 > 0 {
+            self.timer_counter += 1;
+
+            if self.timer_counter >= CPU::get_timer_rate(timer_control) {
+                self.timer_counter = 0;
+                let tima = mem.read(0xFF05);
+                if tima == 0xFF {
+                    mem.write(0xFF05, mem.read(0xFF06));
+                    mem.write(0xFF0F, i_flags | 0b100)
+                } else {
+                    mem.write(0xFF05, tima + 1);
+                }
             }
         }
         
