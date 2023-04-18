@@ -29,7 +29,7 @@ impl Memory {
     }
 
     pub fn read(&self, loc: u16) -> u8{
-        if loc < 0x8000 {
+        if loc < 0x8000 || (0xA000 <= loc && loc <= 0xBFFF){
             return self.cart.read(loc);
         }
 
@@ -63,7 +63,7 @@ impl Memory {
         // }
 
         // If we have to re-render tiles and background
-        if loc < 0xA000 || loc == 0xFF42 || loc == 0xFF43 || loc == 0xFF40 {
+        if loc < 0xA000 {
             // if self.mem[0xFF41] & 0b11 == 3 {
             //     return
             // }

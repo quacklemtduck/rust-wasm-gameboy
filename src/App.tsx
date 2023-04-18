@@ -53,7 +53,6 @@ function App() {
     }
 
     let onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
-        console.log(e)
         if (e.code === 'ArrowUp') {
             UpRef.current = 1;
         }

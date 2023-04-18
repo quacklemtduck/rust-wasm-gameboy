@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use wasm_bindgen::Clamped;
 use web_sys::{CanvasRenderingContext2d, ImageData, console};
 use crate::memory::Memory;
@@ -8,6 +10,7 @@ const SCREEN_WIDTH: usize = 160;
 const PIXELS: usize = 160 * 144;
 pub struct PPU {
     tile_map: [Tile; 384],
+    tile_cache: HashMap<usize, Tile>,
     screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
 
     bg: [u8; 32 * 32],
@@ -16,7 +19,12 @@ pub struct PPU {
 
 impl PPU {
     pub fn new() -> PPU {
-        PPU{tile_map: [Tile::new(); 384], screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], bg: [0; 32 * 32], window: [0; 32 * 32]}
+        PPU{
+            tile_map: [Tile::new(); 384],
+            tile_cache: HashMap::new(), 
+            screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], 
+            bg: [0; 32 * 32], 
+            window: [0; 32 * 32]}
     }
 
     pub fn advance_line(&mut self, mem: &mut Memory) {
@@ -27,8 +35,9 @@ impl PPU {
         if ly < 144 {
             // If new graphics, parse them
             if mem.new_graphics {
-                self.prepare_tile_map(mem);
-                self.prepare_bg(mem);
+                // self.prepare_tile_map(mem);
+                self.tile_cache.clear();
+                // self.prepare_bg(mem);
                 // self.draw_bg_tilemap(mem, bg_ctx);
                 mem.new_graphics = false;
             }
@@ -57,6 +66,33 @@ impl PPU {
             }
         }
     }
+
+    // Gets the tile with index tile_index. Uses caching since tiles are usually used multiple times without changing
+    fn get_tile(&mut self, mem: &mut Memory, tile_index: usize) -> Tile {
+        let tile_option = self.tile_cache.get(&tile_index);
+        match tile_option {
+            Some(tile) => tile.clone(),
+            None => self.parse_and_cache_tile(mem, tile_index),
+        }
+    }
+
+    fn parse_and_cache_tile(&mut self, mem: &mut Memory, tile_index: usize) -> Tile {
+        let mut tile = Tile::new();
+        for x in 0..8 {
+            let addr = 0x8000 + (tile_index as u16*16) + (x*2);
+            println!("addr: {:#x}", addr);
+            let a = mem.read(addr);
+            let b = mem.read(addr + 1);
+            let row = PPU::count_bits(a, b);
+            println!("{:?}", row);
+            for (j, n) in row.iter().enumerate() {
+                tile.data[j + ((x as usize) * 8)] = *n;
+                // self.tile_map[i as usize].data[j + ((x as usize) * 8)] = *n;
+            }
+        }
+        self.tile_cache.insert(tile_index, tile.clone());
+        return tile;
+    } 
 
     pub fn prepare_bg(&mut self, mem: &mut Memory){
         let lcdc = mem.read(0xFF40);
@@ -110,6 +146,12 @@ impl PPU {
         let lcdc = mem.read(0xFF40);
         let data_area = lcdc & 0b10000 > 0;
 
+        let map_area = lcdc & 0b1000 > 0;
+        let window_area = lcdc & 0b1000000 > 0;
+        
+        let area_addr = if map_area {0x9C00} else {0x9800};
+        let window_addr = if window_area {0x9C00} else {0x9800};
+
         let window_enable = lcdc & 0b100000 > 0;
         let wy = if window_enable {mem.read(0xFF4A) as i32} else {0};
         let wx = if window_enable && wy <= ly as i32 {mem.read(0xFF4B) as i32 - 7} else {0};
@@ -129,11 +171,14 @@ impl PPU {
             let tx = x % 256;
             let ty = y % 256;
             let t_index = ((tx / 8)) + ((ty / 8) * 32);
-            let mut t_id = self.bg[t_index] as usize;
+            
+            let mut t_id = mem.read(area_addr + t_index as u16) as usize;
+
+            // let mut t_id = self.bg[t_index] as usize;
             if !data_area && t_id < 128 {
                 t_id = t_id + 256
             }
-            let tile = self.tile_map[t_id];
+            let tile = self.get_tile(mem, t_id);
             //tile.print(t_id);
 
             for tile_x in (tx % 8)..8 {
@@ -159,11 +204,14 @@ impl PPU {
             let mut x = wx;
             while x < SCREEN_WIDTH as i32 {
                 let t_index = (((x - wx) / 8) + ((y / 8) * 32)) as usize;
-                let mut t_id = self.window[t_index] as usize;
+                
+                let mut t_id = mem.read(window_addr + t_index as u16) as usize;
+                
+                // let mut t_id = self.window[t_index] as usize;
                 if !data_area && t_id < 128 {
                     t_id = t_id + 256
                 }
-                let tile = self.tile_map[t_id];
+                let tile = self.get_tile(mem, t_id);
                 for tile_x in 0..8 {
                     if x >= SCREEN_WIDTH as i32 {
                         break
@@ -238,7 +286,7 @@ impl PPU {
                     sprite_line = sprite_height - sprite_line - 1;
                 }
 
-                let tile = if sprite_line < 8 {self.tile_map[tile_id as usize]} else {self.tile_map[tile_id as usize + 1]};
+                let tile = if sprite_line < 8 {self.get_tile(mem, tile_id as usize)} else {self.get_tile(mem, tile_id as usize + 1)};
 
                 let palette = attributes & 0b10000 > 0;
                 let palette_addr = if palette {0xFF49} else {0xFF48};

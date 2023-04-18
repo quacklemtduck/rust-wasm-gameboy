@@ -73,7 +73,9 @@ impl Cartridge {
         }
         if (loc >= 0xA000) && (loc <= 0xbfff) {
             let new_address = loc as usize - 0xA000; //Setting it to 0, in case the bank is 0
-            return self.ram[new_address + (self.ram_bank as usize * 0x4000)];
+            let val = self.ram[new_address + (self.ram_bank as usize * 0x4000)];
+            // console::log_1(&format!("Ram write enable: {}, addr: {:#x}, bank: {}, value: {}", self.ram_enable, new_address, self.ram_bank, val).into());
+            return val;
         }
 
         return self.data[loc as usize]
@@ -109,8 +111,10 @@ impl Cartridge {
         }
 
         if (loc >= 0xA000) && (loc <= 0xBFFF) {
+            
             if self.ram_enable {
                 let new_address = loc as usize - 0xA000; //Setting it to 0, in case the bank is 0
+                // console::log_1(&format!("Ram enable: {}, addr: {:#x}, bank: {}", self.ram_enable, new_address, self.ram_bank).into());
                 self.ram[new_address + (self.ram_bank as usize * 0x4000)] = val;
             }
 
