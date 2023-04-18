@@ -109,7 +109,6 @@ impl Cartridge {
         }
 
         if (loc >= 0xA000) && (loc <= 0xBFFF) {
-            console::log_1(&"Write A".into());
             if self.ram_enable {
                 let new_address = loc as usize - 0xA000; //Setting it to 0, in case the bank is 0
                 self.ram[new_address + (self.ram_bank as usize * 0x4000)] = val;
