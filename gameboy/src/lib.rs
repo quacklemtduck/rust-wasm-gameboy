@@ -58,7 +58,7 @@ impl GameBoy {
         // }
     }
 
-     pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
+     pub fn run(&mut self, ctx: &CanvasRenderingContext2d, bg_ctx: &CanvasRenderingContext2d) {
 
         let mut count_1 = 0;
         loop {
@@ -99,7 +99,7 @@ impl GameBoy {
                         self.cnt += 168;
                     },
                     3 => {
-                        self.advance_line();
+                        self.advance_line(bg_ctx);
                         stat = stat - 3;
                         self.cnt += 208;
                         if stat & 0b1000 > 0{
@@ -111,7 +111,7 @@ impl GameBoy {
                 }
             } else if stat & 0b11 == 1 {
                 if count_1 % 456 == 0 {
-                    self.advance_line()
+                    self.advance_line(bg_ctx)
                 }
                 count_1 += 1;
             }
@@ -128,8 +128,8 @@ impl GameBoy {
         self.cpu.run(&mut self.mem)
     }
 
-    pub fn advance_line(&mut self) {
-        self.ppu.advance_line(&mut self.mem);
+    pub fn advance_line(&mut self, bg_ctx: &CanvasRenderingContext2d) {
+        self.ppu.advance_line(&mut self.mem, bg_ctx);
     }
 
     #[wasm_bindgen(skip)]

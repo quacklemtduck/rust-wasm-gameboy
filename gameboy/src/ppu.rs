@@ -27,7 +27,7 @@ impl PPU {
             window: [0; 32 * 32]}
     }
 
-    pub fn advance_line(&mut self, mem: &mut Memory) {
+    pub fn advance_line(&mut self, mem: &mut Memory, bg_ctx: &CanvasRenderingContext2d) {
         // println!("Advance");
         let mut ly = mem.read(0xff44);
         let lcdc = mem.read(0xff40);
@@ -35,10 +35,10 @@ impl PPU {
         if ly < 144 {
             // If new graphics, parse them
             if mem.new_graphics {
-                // self.prepare_tile_map(mem);
+                self.prepare_tile_map(mem);
                 self.tile_cache.clear();
-                // self.prepare_bg(mem);
-                // self.draw_bg_tilemap(mem, bg_ctx);
+                self.prepare_bg(mem);
+                self.draw_bg_tilemap(mem, bg_ctx);
                 mem.new_graphics = false;
             }
 

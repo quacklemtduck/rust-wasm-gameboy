@@ -4,6 +4,7 @@ import init, {GameBoy} from 'gameboy';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
+    let bgRef = useRef<HTMLCanvasElement>(null)
     let fileRef = useRef(null)
 
     const [gb, setGb] = useState<GameBoy | null>(null)
@@ -127,9 +128,10 @@ function App() {
         lastRenderRef.current = delta
         setFps(fpsTmp)
         const ctx = canvasRef?.current?.getContext("2d")
-        if (ctx == null) return;
+        const bgCtx = bgRef?.current?.getContext("2d")
+        if (ctx == null || bgCtx == null) return;
         gb?.set_joypad_state(UpRef.current, RightRef.current, DownRef.current, LeftRef.current, ARef.current, BRef.current, SelectRef.current, StartRef.current);
-        gb?.run(ctx);
+        gb?.run(ctx, bgCtx);
         animationRef.current = requestAnimationFrame(loop)
     }
 
@@ -166,6 +168,7 @@ function App() {
             started ? getPauseButton() : null
         }
         </div>
+        <canvas style={{width: 256, height: 256, border: "1px solid black"}} ref={bgRef} width={256} height={256} />
     </div>
   );
 }
