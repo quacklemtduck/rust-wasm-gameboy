@@ -158,7 +158,7 @@ function App() {
             </div>
         {(ready && !started) &&
             <div>
-                <input ref={fileRef} type={"file"} onChange={onFile} />
+                <input ref={fileRef} type={"file"} onChange={onFile} accept='.gb' />
                 {gb != null && <button onClick={run}>Run</button>}
             </div>
         }

@@ -53,7 +53,7 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
-        if loc < 0x8000 {
+        if loc < 0x8000 || (0xA000 <= loc && loc <= 0xBFFF) {
             self.cart.write(loc, val);
             return
         }
