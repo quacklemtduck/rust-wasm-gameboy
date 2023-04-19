@@ -665,9 +665,9 @@ impl CPU {
         let instruction = mem.read(self.pc);
         self.history[self.h_i] = (self.pc, instruction);
         self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
-        //if instruction == 0x31 || instruction == 0x33 || instruction == 0x3B || instruction == 0xE8 || instruction == 0xF9{
-        //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
-        //}
+        if self.pc == 0x290B && self.get_register_16(&Register16::HL) == 0x99A2{
+           console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        }
         println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
@@ -831,6 +831,9 @@ impl CPU {
                 return 3
             }
             0x22 => { // LD (HL+), A
+                if self.get_register_16(&Register16::HL) == 0x99A2 {
+                    console::log_1(&format!("Barrel! {:#x}", self.get_register_8(&Register8::A)).into())
+                }
                 mem.write(self.get_register_16(&Register16::HL), self.get_register_8(&Register8::A));
                 self.inc_register_16(&Register16::HL);
                 return 2
