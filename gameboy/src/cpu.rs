@@ -1,6 +1,6 @@
 use web_sys::console;
 
-use crate::memory::Memory;
+use crate::{memory::Memory, state::{InitialState, FinalState}};
 
 
 const HISTORY_LIMIT: usize = 20;
@@ -13,6 +13,7 @@ pub struct CPU {
     sp: u16,
     pc: u16,
     ime: bool,
+    ie: bool,
     halt: bool,
 
     history: [(u16, u8); HISTORY_LIMIT],
@@ -41,6 +42,7 @@ impl CPU {
             sp: 0,
             pc: 0,
             ime: false,
+            ie: false,
             halt: false,
             history: [(0,0); HISTORY_LIMIT],
             h_i: 0,
@@ -49,6 +51,66 @@ impl CPU {
             div_counter: 0,
             timer_counter: 0,
         }
+    }
+
+    pub fn load_state(&mut self, state: &InitialState) {
+        self.set_register_16(&Register16::PC, state.pc);
+        self.set_register_16(&Register16::SP, state.sp);
+        self.set_register_8(&Register8::A, state.a);
+        self.set_register_8(&Register8::B, state.b);
+        self.set_register_8(&Register8::C, state.c);
+        self.set_register_8(&Register8::D, state.d);
+        self.set_register_8(&Register8::E, state.e);
+        self.set_register_8(&Register8::F, state.f);
+        self.set_register_8(&Register8::H, state.h);
+        self.set_register_8(&Register8::L, state.l);
+        self.ime = if state.ime != 0 {true} else {false};
+        self.ie = if state.ie != 0 {true} else {false};
+    }
+
+    pub fn compare_state(&self, state: &FinalState) -> Result<(), String> {
+        if self.get_register_16(&Register16::PC) != state.pc {
+            return Err(format!("Expected PC: {}, actual: {}", state.pc, self.get_register_16(&Register16::PC)))
+        }
+        if self.get_register_16(&Register16::SP) != state.sp {
+            return Err(format!("Expected PC: {}, actual: {}", state.sp, self.get_register_16(&Register16::SP)))
+        }
+        if self.get_register_8(&Register8::A) != state.a {
+            return Err(format!("Expected A: {}, actual: {}", state.a, self.get_register_8(&Register8::A)))
+        }
+        if self.get_register_8(&Register8::B) != state.b {
+            return Err(format!("Expected A: {}, actual: {}", state.b, self.get_register_8(&Register8::B)))
+        }
+        if self.get_register_8(&Register8::C) != state.c {
+            return Err(format!("Expected A: {}, actual: {}", state.c, self.get_register_8(&Register8::C)))
+        }
+        if self.get_register_8(&Register8::D) != state.d {
+            return Err(format!("Expected A: {}, actual: {}", state.d, self.get_register_8(&Register8::D)))
+        }
+        if self.get_register_8(&Register8::E) != state.e {
+            return Err(format!("Expected A: {}, actual: {}", state.e, self.get_register_8(&Register8::E)))
+        }
+        if self.get_register_8(&Register8::F) != state.f {
+            return Err(format!("Expected A: {}, actual: {}", state.f, self.get_register_8(&Register8::F)))
+        }
+        if self.get_register_8(&Register8::H) != state.h {
+            return Err(format!("Expected A: {}, actual: {}", state.h, self.get_register_8(&Register8::H)))
+        }
+        if self.get_register_8(&Register8::L) != state.l {
+            return Err(format!("Expected A: {}, actual: {}", state.l, self.get_register_8(&Register8::L)))
+        }
+
+        // Should be ignored
+        // let ime = if state.ime != 0 {true} else {false};
+        // let ie = if state.ei != 0 {true} else {false};
+        // if self.ime != ime {
+        //     return Err(format!("Expected IME: {}, actual: {}", ime, self.ime))
+        // }
+        // if self.ie != ime {
+        //     return Err(format!("Expected IE: {}, actual: {}", ie, self.ie))
+        // }
+
+        Ok(())
     }
 
     pub fn print(&self) {
@@ -131,7 +193,12 @@ impl CPU {
             Register8::E => self.de.sub.low = val,
             Register8::H => self.hl.sub.high = val,
             Register8::L => self.hl.sub.low = val,
-            Register8::F => todo!(),
+            Register8::F => {
+                self.flags.z = val>>7;
+                self.flags.n = (val & 0b01000000) >> 6;
+                self.flags.h = (val & 0b00100000) >> 5;
+                self.flags.cy = (val & 0b00010000) >> 4;
+            },
         }
     }
 
@@ -668,7 +735,7 @@ impl CPU {
         //if instruction == 0x31 || instruction == 0x33 || instruction == 0x3B || instruction == 0xE8 || instruction == 0xF9{
         //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
         //}
-        println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
+        //println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
 
@@ -858,18 +925,22 @@ impl CPU {
 
                 if self.flags.n == 0 {
                     if self.flags.h > 0 || a & 0x0f > 0x09 {
-                        a += 0x6;
+                        a = a.wrapping_add(0x6);
+                        //a += 0x6;
                     }
                     if self.flags.cy > 0 || a > 0x9F {
-                        a += 0x60;
+                        a = a.wrapping_add(0x60);
+                        //a += 0x60;
                         self.flags.cy = 1;
                     }
                 } else {
                     if self.flags.h > 0 {
-                        a -= 0x6;
+                        a = a.wrapping_sub(0x6);
+                        //a -= 0x6;
                     }
                     if self.flags.cy > 0 {
-                        a -= 0x60;
+                        a = a.wrapping_sub(0x60);
+                        //a -= 0x60;
                     }
                 }
 

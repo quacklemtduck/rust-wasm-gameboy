@@ -1,10 +1,11 @@
 extern crate core;
 
-mod cpu;
-mod memory;
+pub mod cpu;
+pub mod memory;
 mod cartridge;
 mod ppu;
 mod joypad;
+pub mod state;
 
 use joypad::Joypad;
 use wasm_bindgen::prelude::*;

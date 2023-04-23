@@ -1,6 +1,6 @@
 use web_sys::console;
 
-use crate::{cartridge::Cartridge, joypad::Joypad};
+use crate::{cartridge::Cartridge, joypad::Joypad, state::{InitialState, FinalState}};
 
 pub struct Memory {
     pub mem: [u8; 0x10000],
@@ -21,6 +21,27 @@ impl Memory {
             Some(x) => x
         };
         return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new(), test_mode }
+    }
+
+    pub fn load_state(&mut self, state: &InitialState){
+        for v in &state.ram {
+            let addr = v[0];
+            let val = v[1] as u8;
+            self.write(addr, val);
+        }
+    }
+
+    pub fn compare_state(&self, state: &FinalState) -> Result<(), String> {
+            for v in &state.ram {
+                let addr = v[0];
+                let expected = v[1] as u8;
+                let actual = self.read(addr);
+
+                if expected != actual {
+                    return Err(format!("Expected at mem {:#x}: {:#x}, actual: {:#x}", addr, expected, actual))
+                }
+            }
+        return Ok(())
     }
 
     pub fn print(&self) {
