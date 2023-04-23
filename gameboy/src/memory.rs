@@ -6,16 +6,21 @@ pub struct Memory {
     pub mem: [u8; 0x10000],
     pub cart: Cartridge,
     pub new_graphics: bool,
-    pub joypad: Joypad
+    pub joypad: Joypad,
+    test_mode: bool
 }
 
 impl Memory {
+    // If cart is None, then memory is put into test mode with no limitations
     pub fn new(cart: Option<Cartridge>) -> Memory {
+        let mut test_mode = false;
         let c: Cartridge = match cart {
-            None => Cartridge::new(vec![0; 1024 * 32]),
+            None => {
+                test_mode = true;
+                Cartridge::new(vec![0; 1024 * 32])},
             Some(x) => x
         };
-        return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new() }
+        return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new(), test_mode }
     }
 
     pub fn print(&self) {
@@ -29,6 +34,10 @@ impl Memory {
     }
 
     pub fn read(&self, loc: u16) -> u8{
+        if self.test_mode {
+            return self.mem[loc as usize]
+        }
+
         if loc < 0x8000 || (0xA000 <= loc && loc <= 0xBFFF){
             return self.cart.read(loc);
         }
@@ -53,6 +62,11 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
+        if self.test_mode {
+            self.mem[loc as usize] = val;
+            return
+        }
+
         if loc < 0x8000 || (0xA000 <= loc && loc <= 0xBFFF) {
             self.cart.write(loc, val);
             return
