@@ -578,15 +578,6 @@ impl CPU {
             }
         }
         
-
-        if self.halt && self.ime {
-            self.halt = false;
-        } else if self.halt && (i_flags & ie) != 0 {
-            self.halt = false
-        } else if self.halt {
-            //return 1;
-        }
-
         // Timer
         let timer_control = mem.read(0xFF07);
         if timer_control & 0b100 > 0 {
@@ -603,7 +594,16 @@ impl CPU {
                 }
             }
         }
-        
+
+
+        if self.halt && self.ime {
+            self.halt = false;
+        } else if self.halt && (i_flags & ie) != 0 {
+            self.halt = false
+        } else if self.halt {
+            //return 1;
+        }
+
 
         if !self.ime {
             return 0
