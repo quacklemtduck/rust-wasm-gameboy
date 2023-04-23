@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, fs};
 use std::error::Error;
 use std::fs::File;
 use std::io::{Read, BufReader};
@@ -9,14 +9,29 @@ use gameboy::state::CpuTest;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let file = read_json_file(args[1].as_str()).unwrap();
+    run_test(args[1].as_str());
+    
+    let paths = fs::read_dir("./tests/v1/").unwrap();
 
+    for path in paths {
+        //println!("Name: {}", path.unwrap().path().display());
 
-    println!("Running tests for {} ⏳", args[1].as_str());
+        run_test(path.unwrap().path().display().to_string().as_str());
+    }
+
+    
+    
+}
+
+fn run_test(path: &str) {
+    let file = read_json_file(path).unwrap();
+
+    println!("Running tests for {} ⏳", path);
 
     let mut err = false;
 
     for test in &file {
+        println!("Test {}", test.name);
 
         let mut cpu = CPU::new();
         let mut mem = Memory::new(None);
@@ -55,7 +70,6 @@ fn main() {
     if !err {
         println!("Ran without any errors 👍")
     }
-    
 }
 
 fn read_json_file(filename: &str) -> Result<Vec<CpuTest>, Box<dyn Error>> {

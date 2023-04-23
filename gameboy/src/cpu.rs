@@ -2017,7 +2017,7 @@ impl CPU {
 
     fn op_16(&mut self, mem: &mut Memory) -> u8{
         let instruction = mem.read(self.pc);
-        self.pc += 1;
+        self.pc = self.pc.wrapping_add(1);
         match instruction {
             0x00 => { // RLC B
                 self.rlc(&Register8::B, true);
