@@ -255,12 +255,18 @@ impl PPU {
             //       Bit3   Tile VRAM-Bank  **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
             //       Bit2-0 Palette number  **CGB Mode Only**     (OBP0-7)
 
-            let spriteIndex = i * 4;
-            let index = 0xFE00 + spriteIndex; // Sprite table index
+            let sprite_index = i * 4;
+            let index = 0xFE00 + sprite_index; // Sprite table index
+
+            
 
             let y = mem.read(index) as i32 - 16; // Offset by 16 pixels
             let x = mem.read(index + 1) as i32 - 8; // Offset by 8 pixels
             let mut tile_id = mem.read(index + 2);
+
+            if index == 0xFE30 {
+                //console::log_1(&format!("X: {} Y {}", x, y).into());
+            }
 
             let sprite_height: i32 = if lcdc & 0b100 > 0 {
                 tile_id = tile_id & !0x1; // Ignore the lower bit, enforced by the gameboy

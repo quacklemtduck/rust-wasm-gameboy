@@ -8,9 +8,6 @@ use gameboy::memory::Memory;
 use gameboy::state::CpuTest;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    run_test(args[1].as_str());
-    
     let paths = fs::read_dir("./tests/v1/").unwrap();
 
     for path in paths {
@@ -26,12 +23,12 @@ fn main() {
 fn run_test(path: &str) {
     let file = read_json_file(path).unwrap();
 
-    println!("Running tests for {} ⏳", path);
+    //println!("Running tests for {} ⏳", path);
 
     let mut err = false;
 
     for test in &file {
-        println!("Test {}", test.name);
+        //println!("Test {}", test.name);
 
         let mut cpu = CPU::new();
         let mut mem = Memory::new(None);
@@ -68,7 +65,7 @@ fn run_test(path: &str) {
     }
 
     if !err {
-        println!("Ran without any errors 👍")
+        //println!("Ran without any errors 👍")
     }
 }
 

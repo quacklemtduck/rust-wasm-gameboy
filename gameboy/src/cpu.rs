@@ -620,7 +620,7 @@ impl CPU {
         self.flags.h = 0;
     }
 
-    fn get_timer_rate(timer_control: u8) -> u16 {
+    pub fn get_timer_rate(timer_control: u8) -> u16 {
         match timer_control & 0b11 {
             0 => 1024,
             1 => 16,
@@ -634,43 +634,42 @@ impl CPU {
         let i_flags = mem.read(0xFF0F);
         let ie = mem.read(0xFFFF);
 
-        self.div_counter += 1;
-        if self.div_counter >= 256 {
-            self.div_counter = 0;
-            let div = mem.read(0xff04);
-            if div == 0xff {
-                mem.write(0xff04, 0);
-            } else {
-                mem.write(0xff04, div + 1);
-            }
-        }
+        // self.div_counter += 1;
+        // if self.div_counter >= 256 {
+        //     self.div_counter = 0;
+        //     let div = mem.read(0xff04);
+        //     if div == 0xff {
+        //         mem.write(0xff04, 0);
+        //     } else {
+        //         mem.write(0xff04, div + 1);
+        //     }
+        // }
         
-        // Timer
-        let timer_control = mem.read(0xFF07);
-        if timer_control & 0b100 > 0 {
-            self.timer_counter += 1;
-
-            if self.timer_counter >= CPU::get_timer_rate(timer_control) {
-                self.timer_counter = 0;
-                let tima = mem.read(0xFF05);
-                if tima == 0xFF {
-                    mem.write(0xFF05, mem.read(0xFF06));
-                    mem.write(0xFF0F, i_flags | 0b100)
-                } else {
-                    mem.write(0xFF05, tima + 1);
-                }
-            }
-        }
-
-
+        
         if self.halt && self.ime {
             self.halt = false;
         } else if self.halt && (i_flags & ie) != 0 {
             self.halt = false
         } else if self.halt {
-            //return 1;
+            return 1;
         }
 
+        // Timer
+        // let timer_control = mem.read(0xFF07);
+        // if timer_control & 0b100 > 0 {
+        //     self.timer_counter += 1;
+
+        //     if self.timer_counter >= CPU::get_timer_rate(timer_control) {
+        //         self.timer_counter = 0;
+        //         let tima = mem.read(0xFF05);
+        //         if tima == 0xFF {
+        //             mem.write(0xFF05, mem.read(0xFF06));
+        //             mem.write(0xFF0F, i_flags | 0b100)
+        //         } else {
+        //             mem.write(0xFF05, tima + 1);
+        //         }
+        //     }
+        // }
 
         if !self.ime {
             return 0
@@ -702,7 +701,7 @@ impl CPU {
         // Timer
         if i_flags & ie & 0b100 > 0{
             self.ime = false;
-            //console::log_1(&"Timer".into());
+            console::log_1(&"Timer".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0050);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b100);
@@ -732,9 +731,9 @@ impl CPU {
         let instruction = mem.read(self.pc);
         self.history[self.h_i] = (self.pc, instruction);
         self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
-        //if instruction == 0x31 || instruction == 0x33 || instruction == 0x3B || instruction == 0xE8 || instruction == 0xF9{
-        //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
-        //}
+        // if self.pc == 0x05b3{
+           console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        // }
         //println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
@@ -921,7 +920,7 @@ impl CPU {
                 return 2
             }
             0x27 => { // DAA
-                let mut a = self.get_register_8(&Register8::A);
+                let mut a = self.get_register_8(&Register8::A) as u16;
 
                 if self.flags.n == 0 {
                     if self.flags.h > 0 || a & 0x0f > 0x09 {
@@ -952,7 +951,7 @@ impl CPU {
 
                 self.flags.h = 0;
 
-                self.set_register_8(&Register8::A, a);
+                self.set_register_8(&Register8::A, (a & 0xff) as u8);
 
                 return 1
             }
@@ -1011,7 +1010,6 @@ impl CPU {
             }
             0x31 => { // LD SP, d16
                 let d16 = mem.read_16(self.pc);
-                console::log_1(&format!("d16: {:#x}", d16).into());
                 self.pc += 2;
                 self.set_register_16(&Register16::SP, d16);
                 return 3
@@ -2208,7 +2206,7 @@ impl CPU {
                 self.flags.z = if val == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 0;
-                return 2
+                return 4
             }
             0x27 => { // SLA A
                 self.sl(&Register8::A);
@@ -2286,7 +2284,7 @@ impl CPU {
                 self.flags.cy = 0;
                 self.flags.n = 0;
                 self.flags.h = 0;
-                return 2
+                return 4
             }
             0x37 => { // SWAP A
                 self.swap(&Register8::A);

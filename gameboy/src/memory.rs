@@ -83,6 +83,10 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
+        if loc >= 0x9800 && loc <= 0x9BFF {
+            //console::log_1(&format!("New graphics {:#x} {:#x}", loc, val).into());
+        }
+
         if self.test_mode {
             self.mem[loc as usize] = val;
             return
@@ -102,6 +106,7 @@ impl Memory {
             // if self.mem[0xFF41] & 0b11 == 3 {
             //     return
             // }
+            
             self.new_graphics = true;
         }
 
@@ -111,7 +116,7 @@ impl Memory {
         }
 
         if loc == 0xFF46 {
-            //console::log_1(&"DMA".into());
+            console::log_1(&format!("DMA {:#x}", val).into());
             let source = (val as usize) << 8;
             for i in 0..0x100 {
                 self.mem[0xFE00 + i] = self.mem[source + i];

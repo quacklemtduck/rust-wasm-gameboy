@@ -31,7 +31,9 @@ pub struct GameBoy {
     ppu: PPU,
     joypad: Joypad,
     iteration: u32,
-    cnt: i32
+    cnt: i32,
+    div_counter: u16,
+    timer_counter: u16,
 }
 
 #[wasm_bindgen]
@@ -39,7 +41,7 @@ impl GameBoy {
     pub fn new(data: Vec<u8>) -> GameBoy {
         let cart = Cartridge::new(data);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new()}
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new(), timer_counter: 0, div_counter: 0}
     }
 
     pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
@@ -63,7 +65,40 @@ impl GameBoy {
 
         let mut count_1 = 0;
         loop {
-            self.cnt -= self.step() as i32;
+            let cycle = self.step();
+            self.cnt -= cycle as i32;
+
+            // DIV
+            self.div_counter += cycle as u16 * 4;
+            if self.div_counter >= 256 {
+                self.div_counter -= 256;
+                let div = self.mem.read(0xff04);
+                if div == 0xff {
+                    self.mem.write(0xff04, 0);
+                } else {
+                    self.mem.write(0xff04, div + 1);
+                }
+            }
+
+        // Timer
+        let timer_control = self.mem.read(0xFF07);
+        if timer_control & 0b100 > 0 {
+            self.timer_counter += cycle as u16 * 4;
+
+            if self.timer_counter >= CPU::get_timer_rate(timer_control) {
+                self.timer_counter -= CPU::get_timer_rate(timer_control);
+                let tima = self.mem.read(0xFF05);
+                if tima == 0xFF {
+                    //console::log_1(&"Timer int".into());
+                    let i_flags = self.mem.read(0xFF0F);
+                    self.mem.write(0xFF05, self.mem.read(0xFF06));
+                    self.mem.write(0xFF0F, i_flags | 0b100)
+                } else {
+                    self.mem.write(0xFF05, tima + 1);
+                }
+            }
+        }
+
             let mut stat = self.mem.read(0xFF41);
             //console::log_1(&format!("Mode: {} Cnt: {}", stat & 0b11, self.cnt).into());
             if self.cnt < 0 {
