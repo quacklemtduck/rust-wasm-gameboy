@@ -68,6 +68,7 @@ impl Cartridge {
     pub fn read(&self, loc: u16) -> u8{
 
         if (loc >= 0x4000) && (loc <= 0x7fff) {
+            //console::log_1(&format!("Rom {:#x} {} {}", self.rom_bank, self.num_banks, self.rom_size).into());
             let new_address = loc as usize - 0x4000; //Setting it to 0, in case the bank is 0
             return self.data[new_address + (self.rom_bank as usize * 0x4000)];
         }

@@ -646,12 +646,23 @@ impl CPU {
         // }
         
         
-        if self.halt && self.ime {
-            self.halt = false;
-        } else if self.halt && (i_flags & ie) != 0 {
-            self.halt = false
-        } else if self.halt {
-            return 1;
+        //if self.halt && self.ime {
+        //    self.halt = false;
+        //    console::log_1(&"Halt off ime".into());
+        //} else if self.halt && (i_flags & ie) != 0 {
+        //    self.halt = false;
+        //    console::log_1(&"Halt off flags".into());
+        //} else if self.halt {
+        //    return 1;
+        //}
+
+        if self.halt {
+            if (i_flags & ie) != 0 {
+                //console::log_1(&"Halt off".into());
+                self.halt = false
+            } else {
+                return 1;
+            }
         }
 
         // Timer
@@ -726,13 +737,14 @@ impl CPU {
     pub fn run(&mut self, mem: &mut Memory) -> u8{
         let v = self.handle_interrupt(mem);
         if v != 0 || self.halt {
+            //console::log_1(&"Halt".into());
             return v;
         }
         let instruction = mem.read(self.pc);
         self.history[self.h_i] = (self.pc, instruction);
         self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
-        // if self.pc == 0x05b3{
-           console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        // if self.pc == 0x03c7 || self.pc == 0x0525{
+        //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
         // }
         //println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
@@ -1312,6 +1324,7 @@ impl CPU {
             // TODO 0x76 HALT
             0x76 => {
                 self.halt = true;
+                console::log_1(&"Halt on".into());
                 return 1
             }
             0x77 => { // LD (HL), A

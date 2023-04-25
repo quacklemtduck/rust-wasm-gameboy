@@ -116,7 +116,7 @@ impl Memory {
         }
 
         if loc == 0xFF46 {
-            console::log_1(&format!("DMA {:#x}", val).into());
+            //console::log_1(&format!("DMA {:#x}", val).into());
             let source = (val as usize) << 8;
             for i in 0..0x100 {
                 self.mem[0xFE00 + i] = self.mem[source + i];
