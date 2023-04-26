@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 import init, {GameBoy} from 'gameboy';
+import { useGamepads } from 'react-gamepads';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
@@ -25,6 +26,10 @@ function App() {
     let LeftRef = useRef(0)
     let SelectRef = useRef(0)
     let StartRef = useRef(0)
+
+    useGamepads(gamepads => {
+        console.log(gamepads)
+    })
 
     useEffect(() => {
         init().then(() => {
@@ -125,10 +130,49 @@ function App() {
     let loop = (delta: DOMHighResTimeStamp) => {
         let fpsTmp = (1 / (delta - lastRenderRef.current)) * 1000
         lastRenderRef.current = delta
-        setFps(fpsTmp)
+        setFps(fpsTmp)        
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
-        gb?.set_joypad_state(UpRef.current, RightRef.current, DownRef.current, LeftRef.current, ARef.current, BRef.current, SelectRef.current, StartRef.current);
+
+        let up = UpRef.current
+        let right = RightRef.current
+        let down = DownRef.current
+        let left = LeftRef.current
+        let a = ARef.current
+        let b = BRef.current
+        let select = SelectRef.current
+        let start = StartRef.current
+
+        const gp = navigator.getGamepads()?.[0]
+        if (gp != null) {
+            if (gp.axes[0] > 0.5) {
+                right = 1
+            }
+            if (gp.axes[0] < -0.5) {
+                left = 1
+            }
+            if (gp.axes[1] > 0.5) {
+                down = 1
+            }
+            if (gp.axes[1] < -0.5) {
+                up = 1
+            }
+            if (gp.buttons[0].pressed || gp.buttons[4].pressed) {
+                b = 1
+            }
+            if (gp.buttons[1].pressed || gp.buttons[3].pressed) {
+                a = 1
+            }
+            if (gp.buttons[11].pressed) {
+                start = 1
+            }
+            if (gp.buttons[10].pressed) {
+                select = 1
+            }
+        }
+
+
+        gb?.set_joypad_state(up, right, down, left, a, b, select, start);
         gb?.run(ctx);
         animationRef.current = requestAnimationFrame(loop)
     }
