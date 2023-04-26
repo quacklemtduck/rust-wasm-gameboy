@@ -17,7 +17,7 @@ impl Memory {
         let c: Cartridge = match cart {
             None => {
                 test_mode = true;
-                Cartridge::new(vec![0; 1024 * 32])},
+                Cartridge::new(vec![0; 1024 * 32], "test".to_string())},
             Some(x) => x
         };
         return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new(), test_mode }

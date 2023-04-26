@@ -1,8 +1,9 @@
 use web_sys::console;
 
-use crate::cartridge::CType::*;
+use crate::{cartridge::CType::*, save};
 
 pub struct Cartridge {
+    name: String,
     pub data: Vec<u8>,
     pub ram: Vec<u8>,
     c_type: CType,
@@ -27,7 +28,7 @@ pub enum CType {
 }
 
 impl Cartridge {
-    pub fn new(data: Vec<u8>) -> Self {
+    pub fn new(data: Vec<u8>, name: String) -> Self {
         let c_type = match data[0x0147] {
             0x00 => Rom,
             0x01 => Mbc1,
@@ -48,9 +49,16 @@ impl Cartridge {
             _ => 0
         };
 
-        let ram: Vec<u8> = vec![0; ram_size as usize * 1024];
+        let ram = match save::get_item(&name) {
+            Some(val) => val,
+            None => vec![0; ram_size as usize * 1024],
+        };
+
+        //let ram: Vec<u8> = vec![0; ram_size as usize * 1024];
+
 
         return Cartridge{
+            name,
             data,
             c_type,
             rom_size,
@@ -94,6 +102,8 @@ impl Cartridge {
                 self.ram_enable = true;
             }else{
                 self.ram_enable = false;
+                // Save data
+                save::set_item(&self.name, &self.ram).unwrap();
             }
         } else if loc < 0x4000 {
             let mut bank = if val == 0 {0x01} else {val};

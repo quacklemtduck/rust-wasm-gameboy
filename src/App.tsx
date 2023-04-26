@@ -38,7 +38,7 @@ function App() {
         let file = e.target.files[0]
         console.log(file)
         loadFileIntoUint8Array(file, (val) => {
-            setGb(GameBoy.new(val))
+            setGb(GameBoy.new(val, file.name))
         })
     }
 

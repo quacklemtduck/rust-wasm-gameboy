@@ -6,6 +6,7 @@ mod cartridge;
 mod ppu;
 mod joypad;
 pub mod state;
+mod save;
 
 use joypad::Joypad;
 use wasm_bindgen::prelude::*;
@@ -38,8 +39,8 @@ pub struct GameBoy {
 
 #[wasm_bindgen]
 impl GameBoy {
-    pub fn new(data: Vec<u8>) -> GameBoy {
-        let cart = Cartridge::new(data);
+    pub fn new(data: Vec<u8>, name: String) -> GameBoy {
+        let cart = Cartridge::new(data, name);
         let mem = Memory::new(Some(cart));
         GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new(), timer_counter: 0, div_counter: 0}
     }
