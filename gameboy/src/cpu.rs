@@ -622,11 +622,11 @@ impl CPU {
 
     pub fn get_timer_rate(timer_control: u8) -> u16 {
         match timer_control & 0b11 {
-            0 => 1024,
-            1 => 16,
-            2 => 64,
-            3 => 256,
-            _ => 256
+            0 => 256,
+            1 => 4,
+            2 => 16,
+            3 => 64,
+            _ => unreachable!()
         }
     }
 
@@ -736,6 +736,10 @@ impl CPU {
 
     pub fn run(&mut self, mem: &mut Memory) -> u8{
         let v = self.handle_interrupt(mem);
+        if self.ie {
+            self.set_interrupt(true);
+            self.ie = false;
+        }
         if v != 0 || self.halt {
             //console::log_1(&"Halt".into());
             return v;
@@ -1755,7 +1759,7 @@ impl CPU {
                 if self.flags.cy == 0 {
                     let a16 = mem.read_16(self.pc);
                     self.pc = a16;
-                    return 6
+                    return 4
                 } else {
                     self.pc += 2;
                     return 3
@@ -1996,7 +2000,8 @@ impl CPU {
                 return 4
             }
             0xFB => { // EI
-                self.set_interrupt(true);
+                //self.set_interrupt(true);
+                self.ie = true;
                 return 1
             }
             0xFE => { // CP d8
@@ -2375,7 +2380,7 @@ impl CPU {
                 self.flags.z = if result == 0 {1} else {0};
                 self.flags.n = 0;
                 self.flags.h = 1;
-                return 4
+                return 3
             }
             0x47 | 0x4F | 0x57 | 0x5F | 0x67 | 0x6F | 0x77 | 0x7F => { // BIT A
                 self.bit(&Register8::A, (instruction - 0x47) / 0x08);

@@ -69,9 +69,9 @@ impl GameBoy {
             self.cnt -= cycle as i32;
 
             // DIV
-            self.div_counter += cycle as u16 * 4;
-            if self.div_counter >= 256 {
-                self.div_counter -= 256;
+            self.div_counter += cycle as u16;
+            while self.div_counter >= 64 {
+                self.div_counter -= 64;
                 let div = self.mem.read(0xff04);
                 if div == 0xff {
                     self.mem.write(0xff04, 0);
@@ -83,9 +83,9 @@ impl GameBoy {
         // Timer
         let timer_control = self.mem.read(0xFF07);
         if timer_control & 0b100 > 0 {
-            self.timer_counter += cycle as u16 * 4;
+            self.timer_counter += cycle as u16;
 
-            if self.timer_counter >= CPU::get_timer_rate(timer_control) {
+            while self.timer_counter >= CPU::get_timer_rate(timer_control) {
                 self.timer_counter -= CPU::get_timer_rate(timer_control);
                 let tima = self.mem.read(0xFF05);
                 if tima == 0xFF {
@@ -101,7 +101,7 @@ impl GameBoy {
 
             let mut stat = self.mem.read(0xFF41);
             //console::log_1(&format!("Mode: {} Cnt: {}", stat & 0b11, self.cnt).into());
-            if self.cnt < 0 {
+            if self.cnt <= 0 {
                 match stat & 0b11 {
                     0 => { // Going into either VBlank or Searching OAM
                         if self.mem.read(0xFF44) >= 144{ //VBlank
