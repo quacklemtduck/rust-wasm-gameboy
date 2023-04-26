@@ -1,7 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 import init, {GameBoy} from 'gameboy';
-import { useGamepads } from 'react-gamepads';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
@@ -26,10 +25,6 @@ function App() {
     let LeftRef = useRef(0)
     let SelectRef = useRef(0)
     let StartRef = useRef(0)
-
-    useGamepads(gamepads => {
-        console.log(gamepads)
-    })
 
     useEffect(() => {
         init().then(() => {
