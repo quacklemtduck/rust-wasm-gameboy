@@ -23,17 +23,15 @@ pub struct Cartridge {
 pub enum CType {
     Rom,
     Mbc1,
-    Mbc1Ram,
-    Mbc1RamBattery
+    Mbc3,
 }
 
 impl Cartridge {
     pub fn new(data: Vec<u8>, name: String) -> Self {
         let c_type = match data[0x0147] {
             0x00 => Rom,
-            0x01 => Mbc1,
-            0x02 => Mbc1Ram,
-            0x03 => Mbc1RamBattery,
+            0x01 | 0x02 | 0x03 => Mbc1,
+            0x11 | 0x12 | 0x13 => Mbc3, // No support for timers
             _ => {
                 panic!("Rom type not implemented!")
             },
@@ -106,10 +104,18 @@ impl Cartridge {
                 save::set_item(&self.name, &self.ram).unwrap();
             }
         } else if loc < 0x4000 {
-            let mut bank = if val == 0 {0x01} else {val};
-            bank = bank & ((1 << self.num_banks) - 1);
+            match self.c_type {
+                Rom | Mbc1 => {
+                    let mut bank = if val == 0 {0x01} else {val};
+                    bank = bank & ((1 << self.num_banks) - 1);
 
-            self.rom_bank = bank;
+                    self.rom_bank = bank;
+                },
+                Mbc3 => {
+                    self.rom_bank = val
+                },
+            }
+            
         } else if loc < 0x6000 {
             self.ram_bank = val & 0x03;
         } else if loc < 0x8000 {
