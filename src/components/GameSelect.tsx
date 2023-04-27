@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 
 import '../styles/GameSelect.css'
 import { decodeBase64, encodeBase64 } from '../helpers/base64'
+import { getGames, saveGame } from '../helpers/db'
 
 export interface Game {
     name: string,
@@ -16,21 +17,18 @@ const GameSelect = (props: {
     const [games, setGames] = useState<Game[]>([])
 
     useEffect(() => {
-        updateGamesList()
-    }, [])
-
-    let updateGamesList = () => {
-        let games = {...localStorage}
-        let gameList: Game[] = []
-        for (const [key, value] of Object.entries(games)) {
-            if (key == null || !key.startsWith("library-")) continue
-            if (value == null) continue
-            let g_encoded: {name: string, encoded_data: string} = JSON.parse(value)
-            let g: Game = {name: g_encoded.name, data: decodeBase64(g_encoded.encoded_data)}
-            console.log(g)
-            gameList.push(g)
+        if (props.show) {
+            updateGamesList()
         }
-        setGames(gameList)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.show])
+
+    const updateGamesList = () => {
+        getGames().then((games) => {
+            setGames(games)
+        }).catch(() => {
+            setTimeout(updateGamesList, 500)
+        })
     }
 
     let onFile = (e: any) => {
@@ -39,11 +37,9 @@ const GameSelect = (props: {
         let file: File = e.target.files[0]
         loadFileIntoUint8Array(file, (val) => {
             let g = {name: file.name, data: val}
-            let g_encoded = {name: g.name, encoded_data: encodeBase64(val)}
-
-            localStorage.setItem(`library-${g.name}`, JSON.stringify(g_encoded))
-            updateGamesList()
-            selectGame(g)
+            saveGame(g).then(() => {
+                updateGamesList()
+            })
         })
     }
 
