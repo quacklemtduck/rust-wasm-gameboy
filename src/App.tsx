@@ -1,10 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 import init, {GameBoy} from 'gameboy';
+import GameSelect, { Game } from './components/GameSelect';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
-    let fileRef = useRef(null)
 
     const [gb, setGb] = useState<GameBoy | null>(null)
 
@@ -16,6 +16,8 @@ function App() {
 
     let lastRenderRef = useRef(0)
     let [fps, setFps] = useState(0)
+
+    const [showGameSelect, setShowGameSelect] = useState(false)
 
     let ARef = useRef(0)
     let BRef = useRef(0)
@@ -32,14 +34,9 @@ function App() {
         })
     }, [])
 
-    let onFile = (e: any) => {
-        e.stopPropagation()
-        e.preventDefault()
-        let file = e.target.files[0]
-        console.log(file)
-        loadFileIntoUint8Array(file, (val) => {
-            setGb(GameBoy.new(val, file.name))
-        })
+    let chooseGame = (g: Game) => {
+        setGb(GameBoy.new(g.data, g.name))
+        setShowGameSelect(false)
     }
 
     let loadFileIntoUint8Array = (file: any, callback: (val: Uint8Array) => void) => {
@@ -196,10 +193,12 @@ function App() {
             </div>
         {(ready && !started) &&
             <div>
-                <input ref={fileRef} type={"file"} onChange={onFile} accept='.gb' />
+                <button onClick={() => setShowGameSelect(true)}>Pick game</button>
                 {gb != null && <button onClick={run}>Run</button>}
             </div>
         }
+
+        <GameSelect onClose={() => {setShowGameSelect(false)}} show={showGameSelect} onChoose={(g) => chooseGame(g)}  />
         
         {
             started ? getPauseButton() : null
