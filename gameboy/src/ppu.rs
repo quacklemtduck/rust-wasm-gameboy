@@ -12,6 +12,7 @@ pub struct PPU {
     tile_map: [Tile; 384],
     tile_cache: HashMap<usize, Tile>,
     screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+    window_counter: u8,
 
     bg: [u8; 32 * 32],
     window: [u8; 32 * 32],
@@ -24,7 +25,8 @@ impl PPU {
             tile_cache: HashMap::new(), 
             screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], 
             bg: [0; 32 * 32], 
-            window: [0; 32 * 32]}
+            window: [0; 32 * 32],
+            window_counter: 0}
     }
 
     pub fn advance_line(&mut self, mem: &mut Memory) {
@@ -42,9 +44,10 @@ impl PPU {
                 mem.new_graphics = false;
             }
 
-            self.draw_background_line(mem, ly);
+            self.draw_background_line(mem, ly, lcdc);
             self.draw_sprite_line(mem, ly, lcdc);
-
+        } else {
+            self.window_counter = 0;
         }
 
         ly = (ly + 1) % 154;
@@ -141,9 +144,23 @@ impl PPU {
         }
     }
 
-    fn draw_background_line(&mut self, mem: &mut Memory, ly: u8) {
+    fn draw_background_line(&mut self, mem: &mut Memory, ly: u8, lcdc: u8) {
         //console::log_1(&format!("Drawing: {}", ly).into());
-        let lcdc = mem.read(0xFF40);
+        
+        if lcdc & 0x1 == 0 {
+            for x in 0..144 {
+                let screen_pos = ((x as usize) + ((ly as usize) * SCREEN_WIDTH)) * 4;
+                let (r, g, b) = PPU::get_rgb(0);
+                
+                self.screen[screen_pos] = r;
+                self.screen[screen_pos + 1] = g;
+                self.screen[screen_pos + 2] = b;
+                self.screen[screen_pos + 3] = 0xFF;
+            }
+
+            return
+        }
+
         let data_area = lcdc & 0b10000 > 0;
 
         let map_area = lcdc & 0b1000 > 0;
@@ -199,8 +216,11 @@ impl PPU {
             }
         }
 
-        if window_enable && ly as i32 >= wy {
-            let y = ly as i32 - wy;
+        if window_enable && ly as i32 >= wy && (wy < 144) && (wx < 166) {
+            // let y = ly as i32 - wy;
+            let y = self.window_counter as i32;
+
+            self.window_counter += 1;
             let mut x = wx;
             while x < SCREEN_WIDTH as i32 {
                 let t_index = (((x - wx) / 8) + ((y / 8) * 32)) as usize;
@@ -240,8 +260,12 @@ impl PPU {
     }
 
     fn draw_sprite_line(&mut self, mem: &mut Memory, ly: u8, lcdc: u8) {
+        
+        if lcdc & 0b10 == 0 {
+            return
+        }
+        
         // Looping through the sprites in reverse
-
         for i in (0..40).rev() {
             // Sprites use 4 bytes
             // Byte 0: Y Position

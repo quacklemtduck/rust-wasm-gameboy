@@ -28,7 +28,6 @@ export const saveGame = (game: Game) => {
             resolve()
         }
     })
-    
 }
 
 export const getGames = () => {
@@ -43,5 +42,15 @@ export const getGames = () => {
             resolve(req.result)
         }
     })
+}
 
+export const deleteGame = (game: Game) => {
+    return new Promise<void>((resolve, reject) => {
+	const tx = db.transaction("games", "readwrite")
+	const store = tx.objectStore("games")
+	const req = store.delete(game.name)
+	req.onsuccess = () => {
+	    resolve()
+	}
+    })
 }

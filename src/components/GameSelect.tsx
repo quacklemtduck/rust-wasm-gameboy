@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 import '../styles/GameSelect.css'
-import { decodeBase64, encodeBase64 } from '../helpers/base64'
-import { getGames, saveGame } from '../helpers/db'
+import { getGames, saveGame, deleteGame } from '../helpers/db'
 
 export interface Game {
     name: string,
@@ -53,8 +52,8 @@ const GameSelect = (props: {
         reader.readAsArrayBuffer(file);
     }
 
-    let deleteGame = (game: Game) => {
-        localStorage.removeItem(`library-${game.name}`)
+    let onDelete = (game: Game) => {
+	deleteGame(game)
         updateGamesList()
     }
 
@@ -76,7 +75,7 @@ const GameSelect = (props: {
                             games.length > 0 ?
                             games.map((g, i) => {
                                 return (
-                                    <GameRow key={i} game={g} onSelect={g => selectGame(g)} onDelete={g => deleteGame(g)} />
+                                    <GameRow key={i} game={g} onSelect={g => selectGame(g)} onDelete={g => onDelete(g)} />
                                 )
                             })
                             : <span>No games loaded</span>
