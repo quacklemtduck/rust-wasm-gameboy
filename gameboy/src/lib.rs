@@ -51,6 +51,12 @@ impl GameBoy {
         self.cnt = 80;
     }
 
+    pub fn test(&mut self, ctx: &CanvasRenderingContext2d) {
+        for _ in 0..2500 {
+            self.run(ctx)
+        }
+    }
+
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 
         let mut count_1 = 0;

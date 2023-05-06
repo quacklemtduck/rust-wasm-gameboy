@@ -634,28 +634,6 @@ impl CPU {
         let i_flags = mem.read(0xFF0F);
         let ie = mem.read(0xFFFF);
 
-        // self.div_counter += 1;
-        // if self.div_counter >= 256 {
-        //     self.div_counter = 0;
-        //     let div = mem.read(0xff04);
-        //     if div == 0xff {
-        //         mem.write(0xff04, 0);
-        //     } else {
-        //         mem.write(0xff04, div + 1);
-        //     }
-        // }
-        
-        
-        //if self.halt && self.ime {
-        //    self.halt = false;
-        //    console::log_1(&"Halt off ime".into());
-        //} else if self.halt && (i_flags & ie) != 0 {
-        //    self.halt = false;
-        //    console::log_1(&"Halt off flags".into());
-        //} else if self.halt {
-        //    return 1;
-        //}
-
         if self.halt {
             if (i_flags & ie) != 0 {
                 //console::log_1(&"Halt off".into());
@@ -665,23 +643,6 @@ impl CPU {
             }
         }
 
-        // Timer
-        // let timer_control = mem.read(0xFF07);
-        // if timer_control & 0b100 > 0 {
-        //     self.timer_counter += 1;
-
-        //     if self.timer_counter >= CPU::get_timer_rate(timer_control) {
-        //         self.timer_counter = 0;
-        //         let tima = mem.read(0xFF05);
-        //         if tima == 0xFF {
-        //             mem.write(0xFF05, mem.read(0xFF06));
-        //             mem.write(0xFF0F, i_flags | 0b100)
-        //         } else {
-        //             mem.write(0xFF05, tima + 1);
-        //         }
-        //     }
-        // }
-
         if !self.ime {
             return 0
         }
@@ -690,7 +651,7 @@ impl CPU {
         }
 
         // VBlank interrupt
-        if i_flags & ie & 0b1 > 0 { // Noget galt her?
+        if i_flags & ie & 0b1 > 0 {
             self.ime = false;
             //console::log_1(&"VBlank".into());
             self.push(mem, self.get_register_16(&Register16::PC));
@@ -712,7 +673,7 @@ impl CPU {
         // Timer
         if i_flags & ie & 0b100 > 0{
             self.ime = false;
-            console::log_1(&"Timer".into());
+            // console::log_1(&"Timer".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0050);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b100);
@@ -729,8 +690,6 @@ impl CPU {
             return 5;
         }
 
-
-
         return 0
     }
 
@@ -745,8 +704,8 @@ impl CPU {
             return v;
         }
         let instruction = mem.read(self.pc);
-        self.history[self.h_i] = (self.pc, instruction);
-        self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
+        // self.history[self.h_i] = (self.pc, instruction);
+        // self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
         // if self.pc == 0x03c7 || self.pc == 0x0525{
         //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
         // }
@@ -1328,7 +1287,7 @@ impl CPU {
             // TODO 0x76 HALT
             0x76 => {
                 self.halt = true;
-                console::log_1(&"Halt on".into());
+                //console::log_1(&"Halt on".into());
                 return 1
             }
             0x77 => { // LD (HL), A

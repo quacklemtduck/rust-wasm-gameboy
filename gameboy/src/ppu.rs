@@ -288,10 +288,6 @@ impl PPU {
             let x = mem.read(index + 1) as i32 - 8; // Offset by 8 pixels
             let mut tile_id = mem.read(index + 2);
 
-            if index == 0xFE30 {
-                //console::log_1(&format!("X: {} Y {}", x, y).into());
-            }
-
             let sprite_height: i32 = if lcdc & 0b100 > 0 {
                 tile_id = tile_id & !0x1; // Ignore the lower bit, enforced by the gameboy
                 16
