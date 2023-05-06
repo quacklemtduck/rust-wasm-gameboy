@@ -49,17 +49,6 @@ impl GameBoy {
         self.cpu.simulate_bootloader();
         self.mem.simulate_bootloader();
         self.cnt = 80;
-
-        ctx.fill_rect(0.0, 0.0, 100.0, 100.0);
-
-        // for i in 0..1000000 {
-        //     self.step();
-        //     self.advance_line();
-        //     if i % 50000 == 0 {
-        //         self.ppu.prepare_tile_map(&mut self.mem);
-        //         self.ppu.draw(ctx);
-        //     }
-        // }
     }
 
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
@@ -81,24 +70,24 @@ impl GameBoy {
                 }
             }
 
-        // Timer
-        let timer_control = self.mem.read(0xFF07);
-        if timer_control & 0b100 > 0 {
-            self.timer_counter += cycle as u16;
+            // Timer
+            let timer_control = self.mem.read(0xFF07);
+            if timer_control & 0b100 > 0 {
+                self.timer_counter += cycle as u16;
 
-            while self.timer_counter >= CPU::get_timer_rate(timer_control) {
-                self.timer_counter -= CPU::get_timer_rate(timer_control);
-                let tima = self.mem.read(0xFF05);
-                if tima == 0xFF {
-                    //console::log_1(&"Timer int".into());
-                    let i_flags = self.mem.read(0xFF0F);
-                    self.mem.write(0xFF05, self.mem.read(0xFF06));
-                    self.mem.write(0xFF0F, i_flags | 0b100)
-                } else {
-                    self.mem.write(0xFF05, tima + 1);
+                while self.timer_counter >= CPU::get_timer_rate(timer_control) {
+                    self.timer_counter -= CPU::get_timer_rate(timer_control);
+                    let tima = self.mem.read(0xFF05);
+                    if tima == 0xFF {
+                        //console::log_1(&"Timer int".into());
+                        let i_flags = self.mem.read(0xFF0F);
+                        self.mem.write(0xFF05, self.mem.read(0xFF06));
+                        self.mem.write(0xFF0F, i_flags | 0b100)
+                    } else {
+                        self.mem.write(0xFF05, tima + 1);
+                    }
                 }
             }
-        }
 
             let mut stat = self.mem.read(0xFF41);
             //console::log_1(&format!("Mode: {} Cnt: {}", stat & 0b11, self.cnt).into());
