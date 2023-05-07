@@ -8,6 +8,10 @@ mod joypad;
 pub mod state;
 mod save;
 
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
 use joypad::Joypad;
 use wasm_bindgen::prelude::*;
 use web_sys::CanvasRenderingContext2d;
@@ -51,11 +55,28 @@ impl GameBoy {
         self.cnt = 80;
     }
 
+    // Runs 3000 frames in batches of 30 frames
     pub fn test(&mut self, ctx: &CanvasRenderingContext2d) {
-        for _ in 0..2500 {
-            self.run(ctx)
+        let window = web_sys::window().expect("Should have window");
+        let performance = window.performance().expect("Should have performance");
+        let mut times: Vec<f64> = Vec::new();
+        for _ in 0..100 {
+            let start = performance.now();
+            for _ in 0..30 {
+                self.run(ctx);
+            }
+            let end = performance.now();
+            console::log_1(&format!("Elapsed: {}", end - start).into());
+            times.push(end - start);
         }
+
+        let total = times.iter().fold(0.0, |acc, x| acc + x);
+        let avg = total / (times.len() as f64);
+
+        console::log_1(&format!("Avg FPS: {}", (1000.0 / avg) * 30.0).into());
+
     }
+
 
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 

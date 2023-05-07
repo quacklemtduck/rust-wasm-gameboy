@@ -24,7 +24,9 @@ features = [
     'Window',
     'ImageData',
     'console',
-    'Storage'
+    'Storage',
+    'Performance',
+    'PerformanceTiming'
 ]
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
