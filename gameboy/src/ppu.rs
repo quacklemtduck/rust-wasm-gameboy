@@ -10,7 +10,6 @@ const SCREEN_WIDTH: usize = 160;
 const PIXELS: usize = 160 * 144;
 pub struct PPU {
     tile_map: [Tile; 384],
-    tile_cache: HashMap<usize, Tile>,
     screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
     window_counter: u8,
 
@@ -22,7 +21,6 @@ impl PPU {
     pub fn new() -> PPU {
         PPU{
             tile_map: [Tile::new(); 384],
-            tile_cache: HashMap::new(), 
             screen: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4], 
             bg: [0; 32 * 32], 
             window: [0; 32 * 32],
@@ -36,13 +34,13 @@ impl PPU {
         //Draw the line
         if ly < 144 {
             // If new graphics, parse them
-            if mem.new_graphics {
-                // self.prepare_tile_map(mem);
-                self.tile_cache.clear();
-                // self.prepare_bg(mem);
-                // self.draw_bg_tilemap(mem, bg_ctx);
-                mem.new_graphics = false;
-            }
+            // if mem.new_graphics {
+            //     // self.prepare_tile_map(mem);
+            //     self.tile_cache.clear();
+            //     // self.prepare_bg(mem);
+            //     // self.draw_bg_tilemap(mem, bg_ctx);
+            //     mem.new_graphics = false;
+            // }
 
             self.draw_background_line(mem, ly, lcdc);
             self.draw_sprite_line(mem, ly, lcdc);
@@ -72,7 +70,7 @@ impl PPU {
 
     // Gets the tile with index tile_index. Uses caching since tiles are usually used multiple times without changing
     fn get_tile(&mut self, mem: &mut Memory, tile_index: usize) -> Tile {
-        let tile_option = self.tile_cache.get(&tile_index);
+        let tile_option = mem.tile_cache[tile_index];
         match tile_option {
             Some(tile) => tile.clone(),
             None => self.parse_and_cache_tile(mem, tile_index),
@@ -93,7 +91,8 @@ impl PPU {
                 // self.tile_map[i as usize].data[j + ((x as usize) * 8)] = *n;
             }
         }
-        self.tile_cache.insert(tile_index, tile.clone());
+        mem.tile_cache[tile_index] = Some(tile.clone());
+        //self.tile_cache.insert(tile_index, tile.clone());
         return tile;
     } 
 
@@ -515,7 +514,7 @@ impl PPU {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Tile {
+pub struct Tile {
     data: [u8; 64]
 }
 

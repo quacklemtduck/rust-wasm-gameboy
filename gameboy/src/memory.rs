@@ -1,13 +1,14 @@
 use web_sys::console;
 
-use crate::{cartridge::Cartridge, joypad::Joypad, state::{InitialState, FinalState}};
+use crate::{cartridge::Cartridge, joypad::Joypad, state::{InitialState, FinalState}, ppu::Tile};
 
 pub struct Memory {
     pub mem: [u8; 0x10000],
     pub cart: Cartridge,
     pub new_graphics: bool,
     pub joypad: Joypad,
-    test_mode: bool
+    test_mode: bool,
+    pub tile_cache: [Option<Tile>; 384]
 }
 
 impl Memory {
@@ -20,7 +21,8 @@ impl Memory {
                 Cartridge::new(vec![0; 1024 * 32], "test".to_string())},
             Some(x) => x
         };
-        return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new(), test_mode }
+        let tile_cache: [Option<Tile>; 384] = [None; 384];
+        return Memory{mem: [0; 0x10000], cart: c, new_graphics: true, joypad: Joypad::new(), test_mode, tile_cache: tile_cache }
     }
 
     pub fn load_state(&mut self, state: &InitialState){
@@ -101,13 +103,14 @@ impl Memory {
         //     console::log_1(&format!("Write video {:#x}", val).into());
         // }
 
-        // If we have to re-render tiles and background
-        if loc < 0xA000 {
+        // New Tile data
+        if loc >= 0x8000 && loc <= 0x97FF {
             // if self.mem[0xFF41] & 0b11 == 3 {
             //     return
             // }
-            
-            self.new_graphics = true;
+            let tile_id = (loc - 0x8000) / 16;
+            self.tile_cache[tile_id as usize] = None;
+            //self.new_graphics = true;
         }
 
         // JoyPad
