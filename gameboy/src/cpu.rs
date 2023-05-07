@@ -636,7 +636,7 @@ impl CPU {
 
         if self.halt {
             if (i_flags & ie) != 0 {
-                //console::log_1(&"Halt off".into());
+                // console::log_1(&format!("Halt off {}", mem.read(0xFF44)).into());
                 self.halt = false
             } else {
                 return 1;
@@ -706,8 +706,8 @@ impl CPU {
         let instruction = mem.read(self.pc);
         // self.history[self.h_i] = (self.pc, instruction);
         // self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
-        // if self.pc == 0x03c7 || self.pc == 0x0525{
-        //    console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
+        // if instruction == 0x76{
+        //     console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
         // }
         //println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
@@ -1288,6 +1288,7 @@ impl CPU {
             0x76 => {
                 self.halt = true;
                 //console::log_1(&"Halt on".into());
+                //console::log_1(&format!("Halt on {}", mem.read(0xFF44)).into());
                 return 1
             }
             0x77 => { // LD (HL), A

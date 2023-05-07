@@ -150,7 +150,7 @@ function App() {
         let select = SelectRef.current
         let start = StartRef.current
 
-        const gp = navigator.getGamepads()?.[0]
+        /*const gp = navigator.getGamepads()?.[0]
         if (gp != null) {
             if (gp.axes[0] > 0.5) {
                 right = 1
@@ -176,9 +176,9 @@ function App() {
             if (gp.buttons[10].pressed) {
                 select = 1
             }
-        }
+        }*/
 
-
+        //console.log("Frame")
         gb?.set_joypad_state(up, right, down, left, a, b, select, start);
         gb?.run(ctx);
         animationRef.current = requestAnimationFrame(loop)

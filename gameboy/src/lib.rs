@@ -60,6 +60,8 @@ impl GameBoy {
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 
         let mut count_1 = 0;
+
+        //console::log_1(&format!("LY: {}", self.mem.read(0xFF44)).into());
         loop {
             let cycle = self.step();
             self.cnt -= cycle as i32;
@@ -100,9 +102,10 @@ impl GameBoy {
             if self.cnt <= 0 {
                 match stat & 0b11 {
                     0 => { // Going into either VBlank or Searching OAM
-                        if self.mem.read(0xFF44) >= 144{ //VBlank
+                        if self.mem.read(0xFF44) >= 144{
+                            //console::log_1(&format!("lvim {}", self.mem.read(0xFF44)).into()); //VBlank
                             stat = stat + 1;
-                            self.cnt += 18240;
+                            self.cnt += 4560;
                             if stat & 0b10000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
@@ -111,7 +114,7 @@ impl GameBoy {
                             self.ppu.draw(&mut self.mem, ctx)
                         } else {
                             stat = stat + 2;
-                            self.cnt += 320;
+                            self.cnt += 80;
                             if stat & 0b100000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
@@ -119,21 +122,25 @@ impl GameBoy {
                     },
                     1 => { // Going into Searching OAM, end of frame
                         stat = stat + 1;
-                        self.cnt += 320;
+                        self.cnt += 80;
                         if stat & 0b100000 > 0{
                             self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                         }
                         self.mem.write(0xFF41, stat);
+                        while self.mem.read(0xFF44) != 0 {
+                            self.advance_line()
+                        }
+                        //console::log_1(&format!("end {}", self.mem.read(0xFF44)).into());
                         return;
                     },
                     2 => { // Going into Generating picture
                         stat = stat + 1;
-                        self.cnt += 672;
+                        self.cnt += 168;
                     },
                     3 => {
                         self.advance_line();
                         stat = stat - 3;
-                        self.cnt += 832;
+                        self.cnt += 208;
                         if stat & 0b1000 > 0{
                             self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                         }
