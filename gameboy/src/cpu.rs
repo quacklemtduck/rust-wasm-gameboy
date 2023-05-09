@@ -20,9 +20,6 @@ pub struct CPU {
     h_i: usize,
     pushs: u32,
     pops: u32,
-
-    div_counter: u16,
-    timer_counter: u16,
 }
 
 impl CPU {
@@ -48,8 +45,6 @@ impl CPU {
             h_i: 0,
             pushs: 0,
             pops: 0,
-            div_counter: 0,
-            timer_counter: 0,
         }
     }
 
@@ -145,7 +140,7 @@ impl CPU {
         return result != 0x00;
     }
     fn h_test_16(a: u16, b: u16) -> bool {
-        let (result, overflow) = a.overflowing_add(b);
+        let (result, _overflow) = a.overflowing_add(b);
         let half_carry_xor = a ^ b ^ result;
         let half_carry_and = half_carry_xor & 0x1000;
         return half_carry_and != 0x00;
@@ -492,8 +487,6 @@ impl CPU {
 
     fn push(&mut self, mem: &mut Memory, value: u16) {
         self.pushs += 1;
-        let taddr = self.pc - 1;
-        //console::log_1(&format!("Push {:#x} SP: {:#x}", value, self.sp - 2).into());
         let addr = self.get_register_16(&Register16::SP) - 2;
         mem.write_16(addr, value);
         self.set_register_16(&Register16::SP, addr);
@@ -1986,7 +1979,6 @@ impl CPU {
                 }
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
-                return 0
             }
         }
     }
@@ -2417,13 +2409,6 @@ impl CPU {
             0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => { // SET A
                 self.set(&Register8::A, (instruction - 0xC7) / 0x08);
                 return 2
-            }
-
-            _ => {
-                console::log_1(&format!("Unsupported instruction: 0xCB{:02x}", instruction).into());
-                println!("Unsupported instruction: 0xCB{:02x}", instruction);
-                panic!("Unsupported instruction: 0xCB{:02x}", instruction);
-                return 0
             }
         }
     }

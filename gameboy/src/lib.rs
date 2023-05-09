@@ -34,8 +34,6 @@ pub struct GameBoy {
     mem: Memory,
     cpu: CPU,
     ppu: PPU,
-    joypad: Joypad,
-    iteration: u32,
     cnt: i32,
     div_counter: u16,
     timer_counter: u16,
@@ -46,10 +44,10 @@ impl GameBoy {
     pub fn new(data: Vec<u8>, name: String) -> GameBoy {
         let cart = Cartridge::new(data, name);
         let mem = Memory::new(Some(cart));
-        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), iteration: 0, cnt: 0, joypad: Joypad::new(), timer_counter: 0, div_counter: 0}
+        GameBoy{ mem, cpu: CPU::new(), ppu: PPU::new(), cnt: 0, timer_counter: 0, div_counter: 0}
     }
 
-    pub fn start(&mut self, ctx: &CanvasRenderingContext2d) {
+    pub fn start(&mut self) {
         self.cpu.simulate_bootloader();
         self.mem.simulate_bootloader();
         self.cnt = 80;

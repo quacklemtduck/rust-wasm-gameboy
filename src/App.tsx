@@ -113,7 +113,7 @@ function App() {
     let test = () => {
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
-        gb?.start(ctx)
+        gb?.start()
         gb?.set_joypad_state(0,0,0,0,0,0,0,0)
         let before = new Date()
         // for (let i = 0; i < 2500; i++) {
@@ -128,7 +128,7 @@ function App() {
     let run = () => {
         const ctx = canvasRef?.current?.getContext("2d")
         if (ctx == null) return;
-        gb?.start(ctx)
+        gb?.start()
         animationRef.current = requestAnimationFrame(loop)
         setPaused(false)
         setStarted(true)
