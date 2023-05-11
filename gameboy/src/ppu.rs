@@ -37,8 +37,8 @@ impl PPU {
         if ly < 144 {
             // If new graphics, parse them
             if mem.new_graphics {
-                // self.prepare_tile_map(mem);
-                self.tile_cache.clear();
+                self.prepare_tile_map(mem);
+                //self.tile_cache.clear();
                 // self.prepare_bg(mem);
                 // self.draw_bg_tilemap(mem, bg_ctx);
                 mem.new_graphics = false;
@@ -72,6 +72,7 @@ impl PPU {
 
     // Gets the tile with index tile_index. Uses caching since tiles are usually used multiple times without changing
     fn get_tile(&mut self, mem: &mut Memory, tile_index: usize) -> Tile {
+        return self.tile_map[tile_index];
         let tile_option = self.tile_cache.get(&tile_index);
         match tile_option {
             Some(tile) => tile.clone(),

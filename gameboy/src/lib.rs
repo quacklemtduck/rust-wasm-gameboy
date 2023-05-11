@@ -72,7 +72,8 @@ impl GameBoy {
 
         let total = times.iter().fold(0.0, |acc, x| acc + x);
         let avg = total / (times.len() as f64);
-
+        let s = times.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", ");
+        console::log_1(&format!("{}", s).into());
         console::log_1(&format!("Avg FPS: {}", (1000.0 / avg) * 30.0).into());
 
     }
