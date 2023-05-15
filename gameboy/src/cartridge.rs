@@ -1,5 +1,3 @@
-use web_sys::console;
-
 use crate::{cartridge::CType::*, save};
 
 pub struct Cartridge {
@@ -7,9 +5,6 @@ pub struct Cartridge {
     pub data: Vec<u8>,
     pub ram: Vec<u8>,
     c_type: CType,
-    // Size in KiB
-    rom_size: u16,
-    ram_size: u16,
 
     ram_enable: bool,
     ram_bank: u8,
@@ -36,7 +31,6 @@ impl Cartridge {
                 panic!("Rom type not implemented!")
             },
         };
-        let rom_size = 32 * (1 << data[0x0148]);
         let num_banks = data[0x0148] + 1;
         let ram_size = match data[0x0149] {
             0x00 => 0,
@@ -59,8 +53,6 @@ impl Cartridge {
             name,
             data,
             c_type,
-            rom_size,
-            ram_size,
             ram,
             ram_enable: false,
             rom_bank: 1,
@@ -74,14 +66,12 @@ impl Cartridge {
     pub fn read(&self, loc: u16) -> u8{
 
         if (loc >= 0x4000) && (loc <= 0x7fff) {
-            //console::log_1(&format!("Rom {:#x} {} {}", self.rom_bank, self.num_banks, self.rom_size).into());
             let new_address = loc as usize - 0x4000; //Setting it to 0, in case the bank is 0
             return self.data[new_address + (self.rom_bank as usize * 0x4000)];
         }
         if (loc >= 0xA000) && (loc <= 0xbfff) {
             let new_address = loc as usize - 0xA000; //Setting it to 0, in case the bank is 0
             let val = self.ram[new_address + (self.ram_bank as usize * 0x4000)];
-            // console::log_1(&format!("Ram write enable: {}, addr: {:#x}, bank: {}, value: {}", self.ram_enable, new_address, self.ram_bank, val).into());
             return val;
         }
 
@@ -131,7 +121,6 @@ impl Cartridge {
             
             if self.ram_enable {
                 let new_address = loc as usize - 0xA000; //Setting it to 0, in case the bank is 0
-                // console::log_1(&format!("Ram enable: {}, addr: {:#x}, bank: {}", self.ram_enable, new_address, self.ram_bank).into());
                 self.ram[new_address + (self.ram_bank as usize * 0x4000)] = val;
             }
 

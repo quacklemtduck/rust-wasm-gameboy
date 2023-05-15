@@ -3,7 +3,6 @@ use web_sys::console;
 use crate::{memory::Memory, state::{InitialState, FinalState}};
 
 
-const HISTORY_LIMIT: usize = 20;
 pub struct CPU {
     a: u8,
     flags: Flags,
@@ -15,11 +14,6 @@ pub struct CPU {
     ime: bool,
     ie: bool,
     halt: bool,
-
-    history: [(u16, u8); HISTORY_LIMIT],
-    h_i: usize,
-    pushs: u32,
-    pops: u32,
 }
 
 impl CPU {
@@ -41,10 +35,6 @@ impl CPU {
             ime: false,
             ie: false,
             halt: false,
-            history: [(0,0); HISTORY_LIMIT],
-            h_i: 0,
-            pushs: 0,
-            pops: 0,
         }
     }
 
@@ -478,7 +468,6 @@ impl CPU {
     }
 
     fn pop(&mut self, mem: &mut Memory) -> u16{
-        self.pops += 1;
         let addr = self.get_register_16(&Register16::SP);
         let value = mem.read_16(addr);
         self.set_register_16(&Register16::SP, addr + 2);
@@ -486,7 +475,6 @@ impl CPU {
     }
 
     fn push(&mut self, mem: &mut Memory, value: u16) {
-        self.pushs += 1;
         let addr = self.get_register_16(&Register16::SP) - 2;
         mem.write_16(addr, value);
         self.set_register_16(&Register16::SP, addr);
@@ -629,7 +617,6 @@ impl CPU {
 
         if self.halt {
             if (i_flags & ie) != 0 {
-                // console::log_1(&format!("Halt off {}", mem.read(0xFF44)).into());
                 self.halt = false
             } else {
                 return 1;
@@ -646,7 +633,6 @@ impl CPU {
         // VBlank interrupt
         if i_flags & ie & 0b1 > 0 {
             self.ime = false;
-            //console::log_1(&"VBlank".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0040);
             mem.write(0xFF0F, mem.read(0xFF0F) & !1);
@@ -656,7 +642,6 @@ impl CPU {
         // STAT interrupt
         if i_flags & ie & 0b10 > 0 {
             self.ime = false;
-            //console::log_1(&"STAT".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0048);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b10);
@@ -666,7 +651,6 @@ impl CPU {
         // Timer
         if i_flags & ie & 0b100 > 0{
             self.ime = false;
-            // console::log_1(&"Timer".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0050);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b100);
@@ -676,7 +660,6 @@ impl CPU {
         // Input
         if i_flags & ie & 0b10000 > 0{
             self.ime = false;
-            //console::log_1(&"Input".into());
             self.push(mem, self.get_register_16(&Register16::PC));
             self.set_register_16(&Register16::PC, 0x0060);
             mem.write(0xFF0F, mem.read(0xFF0F) & !0b10000);
@@ -693,23 +676,15 @@ impl CPU {
             self.ie = false;
         }
         if v != 0 || self.halt {
-            //console::log_1(&"Halt".into());
             return v;
         }
         let instruction = mem.read(self.pc);
-        // self.history[self.h_i] = (self.pc, instruction);
-        // self.h_i = (self.h_i + 1) % HISTORY_LIMIT;
-        // if instruction == 0x76{
-        //     console::log_1(&format!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE)).into());
-        // }
-        //println!("Running instruction: 0x{:02x} PC: {:#x} SP: {:#x} HL: {:#x} A: {:#x} BC: {:#x}, DE: {:#x}", instruction, self.pc, self.sp, self.get_register_16(&Register16::HL), self.a, self.get_register_16(&Register16::BC), self.get_register_16(&Register16::DE));
         self.pc += 1;
 
-
         match instruction {
-            0x00 => {
+            0x00 => { // NOP
                 return 1
-            } // NOP
+            }
             0x01 => { // LD BC, d16
                 let value = mem.read_16(self.pc);
                 self.pc += 2;
@@ -1280,8 +1255,6 @@ impl CPU {
             // TODO 0x76 HALT
             0x76 => {
                 self.halt = true;
-                //console::log_1(&"Halt on".into());
-                //console::log_1(&format!("Halt on {}", mem.read(0xFF44)).into());
                 return 1
             }
             0x77 => { // LD (HL), A
@@ -1680,7 +1653,6 @@ impl CPU {
                 let next = self.pc + 2;
                 self.push(mem, next);
                 let val = mem.read_16(self.pc);
-                //console::log_1(&format!("CD {:#x} {:#x}", val, self.pc - 1).into());
                 self.pc = val;
                 return 6
             }
@@ -1794,7 +1766,6 @@ impl CPU {
             0xE0 => { // LD (a8) A
                 let val = self.get_register_8(&Register8::A);
                 let addr = 0xff00 + (mem.read(self.pc) as u16);
-                //console::log_1(&format!("LD ({:#x}) A {:#x}", addr, self.pc - 1).into());
                 self.pc += 1;
                 mem.write(addr, val);
                 return 3
@@ -1970,13 +1941,7 @@ impl CPU {
             }
 
             _ => {
-                console::log_1(&format!("Unsupported instruction: 0x{:02x} Address: {:#x}, Push: {}, Pops: {}, Total: {}", instruction, self.pc - 1, self.pushs, self.pops, self.pushs - self.pops).into());
-                console::log_1(&format!("History:",).into());
-                for i in 0..HISTORY_LIMIT {
-                    let index = (self.h_i + i) % HISTORY_LIMIT;
-                    let (addr, inst) = self.history[index];
-                    console::log_1(&format!("Address: {:#x} Instruction: {:#x}", addr, inst).into());
-                }
+                console::log_1(&format!("Unsupported instruction: 0x{:02x} Address: {:#x}", instruction, self.pc - 1).into());
                 println!("Unsupported instruction: 0x{:02x}", instruction);
                 panic!("Unsupported instruction: 0x{:02x}", instruction);
             }

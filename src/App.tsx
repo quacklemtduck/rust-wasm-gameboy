@@ -115,14 +115,7 @@ function App() {
         if (ctx == null) return;
         gb?.start()
         gb?.set_joypad_state(0,0,0,0,0,0,0,0)
-        let before = new Date()
-        // for (let i = 0; i < 2500; i++) {
-        //     gb?.run(ctx)
-        // }
         gb?.test(ctx)
-        let after = new Date()
-
-        console.log(after.getTime() - before.getTime())
     }
 
     let run = () => {
@@ -149,34 +142,6 @@ function App() {
         let b = BRef.current
         let select = SelectRef.current
         let start = StartRef.current
-
-        /*const gp = navigator.getGamepads()?.[0]
-        if (gp != null) {
-            if (gp.axes[0] > 0.5) {
-                right = 1
-            }
-            if (gp.axes[0] < -0.5) {
-                left = 1
-            }
-            if (gp.axes[1] > 0.5) {
-                down = 1
-            }
-            if (gp.axes[1] < -0.5) {
-                up = 1
-            }
-            if (gp.buttons[0].pressed || gp.buttons[4].pressed) {
-                b = 1
-            }
-            if (gp.buttons[1].pressed || gp.buttons[3].pressed) {
-                a = 1
-            }
-            if (gp.buttons[11].pressed) {
-                start = 1
-            }
-            if (gp.buttons[10].pressed) {
-                select = 1
-            }
-        }*/
 
         //console.log("Frame")
         gb?.set_joypad_state(up, right, down, left, a, b, select, start);
@@ -218,7 +183,7 @@ function App() {
         {
             started ? getPauseButton() : null
         }
-        <button onClick={test}>Test</button>
+        {/* <button onClick={test}>Test</button> */}
         </div>
     </div>
   );

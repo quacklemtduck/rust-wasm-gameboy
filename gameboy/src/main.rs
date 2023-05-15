@@ -1,8 +1,8 @@
-use std::{env, fs};
+use std::{fs};
 use std::error::Error;
 use std::fs::File;
-use std::io::{Read, BufReader};
-use gameboy::GameBoy;
+use std::io::{BufReader};
+
 use gameboy::cpu::CPU;
 use gameboy::memory::Memory;
 use gameboy::state::CpuTest;
@@ -78,9 +78,9 @@ fn read_json_file(filename: &str) -> Result<Vec<CpuTest>, Box<dyn Error>> {
     Ok(test)
 }
 
-fn load_file_to_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(filename)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    Ok(buffer)
-}
+// fn load_file_to_vec(filename: &str) -> std::io::Result<Vec<u8>> {
+//     let mut file = File::open(filename)?;
+//     let mut buffer = Vec::new();
+//     file.read_to_end(&mut buffer)?;
+//     Ok(buffer)
+// }

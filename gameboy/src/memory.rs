@@ -1,5 +1,3 @@
-use web_sys::console;
-
 use crate::{cartridge::Cartridge, joypad::Joypad, state::{InitialState, FinalState}, ppu::Tile};
 
 pub struct Memory {
@@ -85,10 +83,6 @@ impl Memory {
     // }
 
     pub fn write(&mut self, loc: u16, val: u8){
-        if loc >= 0x9800 && loc <= 0x9BFF {
-            //console::log_1(&format!("New graphics {:#x} {:#x}", loc, val).into());
-        }
-
         if self.test_mode {
             self.mem[loc as usize] = val;
             return
@@ -98,19 +92,11 @@ impl Memory {
             self.cart.write(loc, val);
             return
         }
-        // if loc == 0x8001 {
-        //     // println!("Write Video {:#x}", val);
-        //     console::log_1(&format!("Write video {:#x}", val).into());
-        // }
 
         // New Tile data
         if loc >= 0x8000 && loc <= 0x97FF {
-            // if self.mem[0xFF41] & 0b11 == 3 {
-            //     return
-            // }
             let tile_id = (loc - 0x8000) / 16;
             self.tile_cache[tile_id as usize] = None;
-            //self.new_graphics = true;
         }
 
         // JoyPad
@@ -119,7 +105,6 @@ impl Memory {
         }
 
         if loc == 0xFF46 {
-            //console::log_1(&format!("DMA {:#x}", val).into());
             let source = (val as usize) << 8;
             for i in 0..0x100 {
                 self.mem[0xFE00 + i] = self.mem[source + i];

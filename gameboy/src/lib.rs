@@ -8,11 +8,6 @@ mod joypad;
 pub mod state;
 mod save;
 
-use std::time::Duration;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
-
-use joypad::Joypad;
 use wasm_bindgen::prelude::*;
 use web_sys::CanvasRenderingContext2d;
 use web_sys::console;
@@ -81,7 +76,6 @@ impl GameBoy {
 
         let mut count_1 = 0;
 
-        //console::log_1(&format!("LY: {}", self.mem.read(0xFF44)).into());
         loop {
             let cycle = self.step();
             self.cnt -= cycle as i32;
@@ -107,7 +101,6 @@ impl GameBoy {
                     self.timer_counter -= CPU::get_timer_rate(timer_control);
                     let tima = self.mem.read(0xFF05);
                     if tima == 0xFF {
-                        //console::log_1(&"Timer int".into());
                         let i_flags = self.mem.read(0xFF0F);
                         self.mem.write(0xFF05, self.mem.read(0xFF06));
                         self.mem.write(0xFF0F, i_flags | 0b100)
@@ -118,20 +111,17 @@ impl GameBoy {
             }
 
             let mut stat = self.mem.read(0xFF41);
-            //console::log_1(&format!("Mode: {} Cnt: {}", stat & 0b11, self.cnt).into());
             if self.cnt <= 0 {
                 match stat & 0b11 {
                     0 => { // Going into either VBlank or Searching OAM
                         if self.mem.read(0xFF44) >= 144{
-                            //console::log_1(&format!("lvim {}", self.mem.read(0xFF44)).into()); //VBlank
                             stat = stat + 1;
                             self.cnt += 4560;
                             if stat & 0b10000 > 0{
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
                             self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b1);
-                            //console::log_1(&format!("Draw {}", self.mem.read(0xFF44)).into());
-                            self.ppu.draw(&mut self.mem, ctx)
+                            self.ppu.draw(ctx)
                         } else {
                             stat = stat + 2;
                             self.cnt += 80;
@@ -150,7 +140,6 @@ impl GameBoy {
                         while self.mem.read(0xFF44) != 0 {
                             self.advance_line()
                         }
-                        //console::log_1(&format!("end {}", self.mem.read(0xFF44)).into());
                         return;
                     },
                     2 => { // Going into Generating picture
@@ -189,14 +178,6 @@ impl GameBoy {
 
     pub fn advance_line(&mut self) {
         self.ppu.advance_line(&mut self.mem);
-    }
-
-    #[wasm_bindgen(skip)]
-    pub fn print(&mut self) {
-        self.cpu.print();
-        self.mem.print();
-        self.ppu.prepare_tile_map(&mut self.mem);
-        self.ppu.print_tile();
     }
 }
 
