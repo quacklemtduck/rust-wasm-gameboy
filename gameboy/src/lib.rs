@@ -71,6 +71,10 @@ impl GameBoy {
 
     }
 
+    pub fn draw_frame(&mut self, ctx: &CanvasRenderingContext2d) {
+        self.ppu.draw(ctx)
+    }
+
 
      pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
 
@@ -121,7 +125,7 @@ impl GameBoy {
                                 self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b10);
                             }
                             self.mem.write(0xFF0F, self.mem.read(0xFF0F) | 0b1);
-                            self.ppu.draw(ctx)
+                            // self.ppu.draw(ctx)
                         } else {
                             stat = stat + 2;
                             self.cnt += 80;

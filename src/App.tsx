@@ -15,7 +15,10 @@ function App() {
     const [started, setStarted] = useState(false)
 
     let lastRenderRef = useRef(0)
-    let [fps, setFps] = useState(0)
+    const [fps, setFps] = useState(0)
+
+    const [showAdvanced, setShowAdvanced] = useState(false)
+    let speedRef = useRef(1)
 
     const [showGameSelect, setShowGameSelect] = useState(false)
 
@@ -116,6 +119,7 @@ function App() {
         gb?.start()
         gb?.set_joypad_state(0,0,0,0,0,0,0,0)
         gb?.test(ctx)
+        gb?.draw_frame(ctx)
     }
 
     let run = () => {
@@ -145,7 +149,11 @@ function App() {
 
         //console.log("Frame")
         gb?.set_joypad_state(up, right, down, left, a, b, select, start);
-        gb?.run(ctx);
+        //console.log(speedRef.current)
+        for (let i = 0; i < speedRef.current; i++){
+            gb?.run(ctx);
+        }
+        gb?.draw_frame(ctx)
         animationRef.current = requestAnimationFrame(loop)
     }
 
@@ -166,7 +174,6 @@ function App() {
 
   return (
     <div className="App">
-        <p>FPS: {fps}</p>
         <div className='container'>
             <div className='canvas-container'>
                 <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyDown={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
@@ -184,6 +191,31 @@ function App() {
             started ? getPauseButton() : null
         }
         {/* <button onClick={test}>Test</button> */}
+        <div className='advanced-container'>
+            <div className='advanced-title click' onClick={() => setShowAdvanced(!showAdvanced)}>
+                <span>Advanced</span>
+                {showAdvanced ? <i className="fa fa-caret-square-o-down ml-5" aria-hidden="true"></i> : <i className="fa fa-caret-square-o-right ml-5" aria-hidden="true"></i>}
+            </div>
+
+            {showAdvanced ? 
+                <div className='advanced-content'>
+                    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr"}}>
+                        <span>FPS: {fps.toFixed(2)}</span>
+                        <span>Game FPS: {(fps * speedRef.current).toFixed(2)}</span>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", marginTop: 5}}>
+                        <label htmlFor="speedInput">Speed:</label>
+                        <input id='speedInput' type='number' min={1} step={1} defaultValue={speedRef.current} onChange={e => {
+                            console.log("Update", e.target.value)
+                            let val = e.target.value !== "" ? Number(e.target.value) : 1
+                            speedRef.current = val
+                        }
+                            }/>
+                    </div>
+                </div>
+            : null}
+
+        </div>
         </div>
     </div>
   );
