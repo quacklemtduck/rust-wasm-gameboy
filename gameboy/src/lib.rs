@@ -49,14 +49,14 @@ impl GameBoy {
     }
 
     // Runs 3000 frames in batches of 30 frames
-    pub fn test(&mut self, ctx: &CanvasRenderingContext2d) {
+    pub fn test(&mut self) {
         let window = web_sys::window().expect("Should have window");
         let performance = window.performance().expect("Should have performance");
         let mut times: Vec<f64> = Vec::new();
         for _ in 0..100 {
             let start = performance.now();
             for _ in 0..30 {
-                self.run(ctx);
+                self.run();
             }
             let end = performance.now();
             console::log_1(&format!("Elapsed: {}", end - start).into());
@@ -76,7 +76,7 @@ impl GameBoy {
     }
 
 
-     pub fn run(&mut self, ctx: &CanvasRenderingContext2d) {
+     pub fn run(&mut self) {
 
         let mut count_1 = 0;
 

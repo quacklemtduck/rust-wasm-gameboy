@@ -19,6 +19,7 @@ function App() {
 
     const [showAdvanced, setShowAdvanced] = useState(false)
     let speedRef = useRef(1)
+    let speedCountRef = useRef(0)
 
     const [showGameSelect, setShowGameSelect] = useState(false)
 
@@ -40,16 +41,6 @@ function App() {
     let chooseGame = (g: Game) => {
         setGb(GameBoy.new(g.data, g.name))
         setShowGameSelect(false)
-    }
-
-    let loadFileIntoUint8Array = (file: any, callback: (val: Uint8Array) => void) => {
-        const reader = new FileReader();
-        reader.onload = function() {
-            const arrayBuffer: any = reader.result;
-            const uint8Array = new Uint8Array(arrayBuffer);
-            callback(uint8Array);
-        }
-        reader.readAsArrayBuffer(file);
     }
 
     let onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
@@ -113,14 +104,14 @@ function App() {
         }
     }
 
-    let test = () => {
-        const ctx = canvasRef?.current?.getContext("2d")
-        if (ctx == null) return;
-        gb?.start()
-        gb?.set_joypad_state(0,0,0,0,0,0,0,0)
-        gb?.test(ctx)
-        gb?.draw_frame(ctx)
-    }
+    // let test = () => {
+    //     const ctx = canvasRef?.current?.getContext("2d")
+    //     if (ctx == null) return;
+    //     gb?.start()
+    //     gb?.set_joypad_state(0,0,0,0,0,0,0,0)
+    //     gb?.test()
+    //     gb?.draw_frame(ctx)
+    // }
 
     let run = () => {
         const ctx = canvasRef?.current?.getContext("2d")
@@ -147,12 +138,14 @@ function App() {
         let select = SelectRef.current
         let start = StartRef.current
 
-        //console.log("Frame")
         gb?.set_joypad_state(up, right, down, left, a, b, select, start);
-        //console.log(speedRef.current)
-        for (let i = 0; i < speedRef.current; i++){
-            gb?.run(ctx);
+
+        speedCountRef.current += speedRef.current
+        while (speedCountRef.current >= 1) {
+            gb?.run()
+            speedCountRef.current -= 1
         }
+
         gb?.draw_frame(ctx)
         animationRef.current = requestAnimationFrame(loop)
     }
@@ -205,7 +198,7 @@ function App() {
                     </div>
                     <div style={{display: "flex", justifyContent: "space-between", marginTop: 5}}>
                         <label htmlFor="speedInput">Speed:</label>
-                        <input id='speedInput' type='number' min={1} step={1} defaultValue={speedRef.current} onChange={e => {
+                        <input id='speedInput' type='number' min={0} step={0.1} defaultValue={speedRef.current} onChange={e => {
                             let val = e.target.value !== "" ? Number(e.target.value) : 1
                             speedRef.current = val
                         }
