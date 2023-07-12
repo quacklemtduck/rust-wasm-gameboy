@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 import init, {GameBoy} from 'gameboy';
 import GameSelect, { Game } from './components/GameSelect';
+import { Buttons } from './helpers/types';
 
 function App() {
     let canvasRef = useRef<HTMLCanvasElement>(null)
@@ -35,6 +36,12 @@ function App() {
     let LeftRef = useRef(0)
     let SelectRef = useRef(0)
     let StartRef = useRef(0)
+
+    let UpButtonRef = useRef<any>()
+    let RightButtonRef = useRef<any>()
+    let DownButtonRef = useRef<any>()
+    let LeftButtonRef = useRef<any>()
+    
 
     useEffect(() => {
         init().then(() => {
@@ -112,6 +119,108 @@ function App() {
         }
     }
 
+    let onTouchStart = (button: Buttons) => {
+        switch (button) {
+            case Buttons.UP:
+                UpRef.current = 1
+                break;
+            case Buttons.RIGHT:
+                RightRef.current = 1
+                break;
+            case Buttons.DOWN:
+                DownRef.current = 1
+                break;
+            case Buttons.LEFT:
+                LeftRef.current = 1
+                break;
+            case Buttons.A:
+                ARef.current = 1
+                break;
+            case Buttons.B:
+                BRef.current = 1
+                break;
+            case Buttons.SELECT:
+                SelectRef.current = 1
+                break;
+            case Buttons.START:
+                StartRef.current = 1
+                break;
+            default:
+                break;
+        }
+    }
+
+    let onTouchEnd = (button: Buttons) => {
+        switch (button) {
+            case Buttons.UP:
+                UpRef.current = 0
+                break;
+            case Buttons.RIGHT:
+                RightRef.current = 0
+                break;
+            case Buttons.DOWN:
+                DownRef.current = 0
+                break;
+            case Buttons.LEFT:
+                LeftRef.current = 0
+                break;
+            case Buttons.A:
+                ARef.current = 0
+                break;
+            case Buttons.B:
+                BRef.current = 0
+                break;
+            case Buttons.SELECT:
+                SelectRef.current = 0
+                break;
+            case Buttons.START:
+                StartRef.current = 0
+                break;
+            default:
+                break;
+        }
+    }
+
+    let onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+
+        let upRect: DOMRect = UpButtonRef.current.getBoundingClientRect()
+        let rightRect: DOMRect = RightButtonRef.current.getBoundingClientRect()
+        let downRect: DOMRect = DownButtonRef.current.getBoundingClientRect()
+        let leftRect: DOMRect = LeftButtonRef.current.getBoundingClientRect()
+
+        UpRef.current = 0
+        RightRef.current = 0
+        DownRef.current = 0
+        LeftRef.current = 0
+
+        for (let i = 0; i < e.touches.length; i++) {
+            let touch = e.touches[i]
+            if (touch.pageX >= upRect.left &&
+                touch.pageX <= upRect.right &&
+                touch.pageY >= upRect.top &&
+                touch.pageY <= upRect.bottom) {
+                UpRef.current = 1
+            }
+            if (touch.pageX >= rightRect.left &&
+                touch.pageX <= rightRect.right &&
+                touch.pageY >= rightRect.top &&
+                touch.pageY <= rightRect.bottom) {
+                RightRef.current = 1
+            }
+            if (touch.pageX >= downRect.left &&
+                touch.pageX <= downRect.right &&
+                touch.pageY >= downRect.top &&
+                touch.pageY <= downRect.bottom) {
+                DownRef.current = 1
+            }
+            if (touch.pageX >= leftRect.left &&
+                touch.pageX <= leftRect.right &&
+                touch.pageY >= leftRect.top &&
+                touch.pageY <= leftRect.bottom) {
+                LeftRef.current = 1
+            }
+        }
+    }
     // let test = () => {
     //     const ctx = canvasRef?.current?.getContext("2d")
     //     if (ctx == null) return;
@@ -192,7 +301,7 @@ function App() {
     }
 
   return (
-    <div className="App">
+    <div className="App" onTouchMove={onTouchMove} onTouchStart={onTouchMove} onTouchEnd={onTouchMove}>
         <div className='container'>
             <div className='canvas-container'>
                 <canvas tabIndex={0} ref={canvasRef} width={160} height={144} onKeyDown={(e) => onKeyDown(e)} onKeyUp={(e) => onKeyUp(e)}/>
@@ -242,15 +351,29 @@ function App() {
             <div className='mobile-controls'>
                 <div className='mobile-top'>
                     <div className='mobile-dpad'>
+                        <div className='dpad'>
+                            <div />
+                            <button ref={UpButtonRef} className='dup' onTouchStart={() => onTouchStart(Buttons.UP)}  onTouchEnd={() => onTouchEnd(Buttons.UP)}></button>
+                            <div />
 
+                            <button ref={LeftButtonRef} className='dleft' onTouchStart={() => onTouchStart(Buttons.LEFT)} onTouchEnd={() => onTouchEnd(Buttons.LEFT)}></button>
+                            <div style={{backgroundColor: "#3a3e45"}}/>
+                            <button ref={RightButtonRef} className='dright' onTouchStart={() => onTouchStart(Buttons.RIGHT)} onTouchEnd={() => onTouchEnd(Buttons.RIGHT)}></button>
+
+                            <div />
+                            <button ref={DownButtonRef} className='ddown' onTouchStart={() => onTouchStart(Buttons.DOWN)} onTouchEnd={() => onTouchEnd(Buttons.DOWN)}></button>
+                            <div />
+
+                        </div>
                     </div>
                     <div className='mobile-ab'>
-
+                        <button className='ab-button' style={{marginRight: 15}} onTouchStart={() => onTouchStart(Buttons.B)} onTouchEnd={() => onTouchEnd(Buttons.B)}>B</button>
+                        <button className='ab-button' style={{marginBottom: 20}} onTouchStart={() => onTouchStart(Buttons.A)} onTouchEnd={() => onTouchEnd(Buttons.A)}>A</button>
                     </div>
                 </div>
                 <div className='mobile-bottom'>
-                    <button className='bottom-button' style={{marginRight: 10}}>select</button>
-                    <button className='bottom-button'>start</button>
+                    <button className='bottom-button' style={{marginRight: 10}} onTouchStart={() => onTouchStart(Buttons.SELECT)} onTouchEnd={() => onTouchEnd(Buttons.SELECT)}>select</button>
+                    <button className='bottom-button' onTouchStart={() => onTouchStart(Buttons.START)} onTouchEnd={() => onTouchEnd(Buttons.START)}>start</button>
                 </div>
             </div>
         </div>

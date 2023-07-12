@@ -6,6 +6,10 @@ body {
   padding-top: 20px;
 }
 
+button {
+  user-select: none;
+}
+
 
 canvas {
   image-rendering: pixelated;
@@ -59,10 +63,71 @@ canvas {
   position: absolute;
   bottom: 0px;
   padding-bottom: 10px;
+  width: 100%;
+}
+
+.mobile-top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.mobile-ab {
+  padding-bottom: 160px;
+  padding-right: 35px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.ab-button {
+  all: unset;
+  background-color: #3a3e45;
+  color: white;
+  font-size: 25px;
+  border-radius: 50%;
+  padding: 10px;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+.dpad {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 35vw;
+  height: 35vw;
+  margin-left: 30px;
+  user-select: none;
+}
+
+.dpad button {
+  all: unset;
+  background-color: #3a3e45;
+}
+
+.dup {
+  border-top-left-radius: 4px !important;
+  border-top-right-radius: 4px !important;
+}
+
+.dright {
+  border-top-right-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+.ddown {
+  border-bottom-left-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+.dleft {
+  border-top-left-radius: 4px !important;
+  border-bottom-left-radius: 4px !important;
 }
 
 .mobile-bottom {
   display: flex;
+  justify-content: center;
 }
 
 .bottom-button {
@@ -78,6 +143,11 @@ canvas {
 }
 
 @media only screen and (max-width: 620px) {
+
+  html, body {
+    overscroll-behavior: none;
+  }
+
   .advanced-container {
     display: none;
   }
