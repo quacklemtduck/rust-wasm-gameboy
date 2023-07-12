@@ -206,7 +206,6 @@ function App() {
                     <div style={{display: "flex", justifyContent: "space-between", marginTop: 5}}>
                         <label htmlFor="speedInput">Speed:</label>
                         <input id='speedInput' type='number' min={1} step={1} defaultValue={speedRef.current} onChange={e => {
-                            console.log("Update", e.target.value)
                             let val = e.target.value !== "" ? Number(e.target.value) : 1
                             speedRef.current = val
                         }
