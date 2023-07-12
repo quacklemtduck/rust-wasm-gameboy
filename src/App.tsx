@@ -12,6 +12,7 @@ function App() {
 
     let animationRef = useRef<any>(null)
     const [paused, setPaused] = useState(true)
+    let pausedRef = useRef(true)
     const [started, setStarted] = useState(false)
 
     let lastRenderRef = useRef(0)
@@ -20,6 +21,9 @@ function App() {
     const [showAdvanced, setShowAdvanced] = useState(false)
     let speedRef = useRef(1)
     let speedCountRef = useRef(0)
+    const [dynamic, setDynamic] = useState(true)
+    let dynamicRef = useRef(true)
+    let pauseCounterRef = useRef(0)
 
     const [showGameSelect, setShowGameSelect] = useState(false)
 
@@ -37,6 +41,10 @@ function App() {
             setReady(true)
         })
     }, [])
+
+    useEffect(() => {
+        dynamicRef.current = dynamic
+    }, [dynamic])
 
     let chooseGame = (g: Game) => {
         setGb(GameBoy.new(g.data, g.name))
@@ -119,6 +127,7 @@ function App() {
         gb?.start()
         animationRef.current = requestAnimationFrame(loop)
         setPaused(false)
+        pausedRef.current = false
         setStarted(true)
     }
 
@@ -126,8 +135,15 @@ function App() {
         let fpsTmp = (1 / (delta - lastRenderRef.current)) * 1000
         lastRenderRef.current = delta
         setFps(fpsTmp)        
+
+        if (pauseCounterRef.current < 10) {
+            pauseCounterRef.current++
+            animationRef.current = requestAnimationFrame(loop)
+            return
+        }
+
         const ctx = canvasRef?.current?.getContext("2d")
-        if (ctx == null) return;
+        if (ctx == null || pausedRef.current) return;
 
         let up = UpRef.current
         let right = RightRef.current
@@ -140,7 +156,14 @@ function App() {
 
         gb?.set_joypad_state(up, right, down, left, a, b, select, start);
 
-        speedCountRef.current += speedRef.current
+        if (dynamicRef.current) {
+            // console.log(`Dynamic count ${speedCountRef.current} + ${60 / fpsTmp}`)
+            speedCountRef.current += 60 / fpsTmp
+
+        } else {
+            // console.log(`Set count ${speedCountRef.current} + ${speedRef.current}`)
+            speedCountRef.current += speedRef.current
+        }
         while (speedCountRef.current >= 1) {
             gb?.run()
             speedCountRef.current -= 1
@@ -156,11 +179,14 @@ function App() {
             <button onClick={() => {
                 animationRef.current = requestAnimationFrame(loop)
                 setPaused(false)
+                pausedRef.current = false
+                pauseCounterRef.current = 0
             }}>Start</button>:
             <button onClick={() => {
                 cancelAnimationFrame(animationRef.current)
                 animationRef.current = null
                 setPaused(true)
+                pausedRef.current = true
             }}>Pause</button>
         )
     }
@@ -178,36 +204,55 @@ function App() {
             </div>
         }
 
-        <GameSelect onClose={() => {setShowGameSelect(false)}} show={showGameSelect} onChoose={(g) => chooseGame(g)}  />
+            <GameSelect onClose={() => {setShowGameSelect(false)}} show={showGameSelect} onChoose={(g) => chooseGame(g)}  />
         
         {
             started ? getPauseButton() : null
         }
-        {/* <button onClick={test}>Test</button> */}
-        <div className='advanced-container'>
-            <div className='advanced-title click' onClick={() => setShowAdvanced(!showAdvanced)}>
-                <span>Advanced</span>
-                {showAdvanced ? <i className="fa fa-caret-square-o-down ml-5" aria-hidden="true"></i> : <i className="fa fa-caret-square-o-right ml-5" aria-hidden="true"></i>}
+            {/* <button onClick={test}>Test</button> */}
+            <div className='advanced-container'>
+                <div className='advanced-title click' onClick={() => setShowAdvanced(!showAdvanced)}>
+                    <span>Advanced</span>
+                    {showAdvanced ? <i className="fa fa-caret-square-o-down ml-5" aria-hidden="true"></i> : <i className="fa fa-caret-square-o-right ml-5" aria-hidden="true"></i>}
+                </div>
+
+                {showAdvanced ? 
+                    <div className='advanced-content'>
+                        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr"}}>
+                            <span>FPS: {fps.toFixed(2)}</span>
+                            <span>Game FPS: {(fps * speedRef.current).toFixed(2)}</span>
+                        </div>
+                        <div>
+                            <label htmlFor="dynamicCheck">Dynamic FPS:</label>
+                            <input id='dynamicCheck' type='checkbox' checked={dynamic} onChange={() => setDynamic((v) => !v)} />
+                        </div>
+                        <div style={{display: "flex", justifyContent: "space-between", marginTop: 5}}>
+                            <label htmlFor="speedInput">Speed:</label>
+                            <input disabled={dynamic} id='speedInput' type='number' min={0} step={0.1} defaultValue={speedRef.current} onChange={e => {
+                                let val = e.target.value !== "" ? Number(e.target.value) : 1
+                                speedRef.current = val
+                            }
+                                }/>
+                        </div>
+                    </div>
+                : null}
+
             </div>
 
-            {showAdvanced ? 
-                <div className='advanced-content'>
-                    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr"}}>
-                        <span>FPS: {fps.toFixed(2)}</span>
-                        <span>Game FPS: {(fps * speedRef.current).toFixed(2)}</span>
+            <div className='mobile-controls'>
+                <div className='mobile-top'>
+                    <div className='mobile-dpad'>
+
                     </div>
-                    <div style={{display: "flex", justifyContent: "space-between", marginTop: 5}}>
-                        <label htmlFor="speedInput">Speed:</label>
-                        <input id='speedInput' type='number' min={0} step={0.1} defaultValue={speedRef.current} onChange={e => {
-                            let val = e.target.value !== "" ? Number(e.target.value) : 1
-                            speedRef.current = val
-                        }
-                            }/>
+                    <div className='mobile-ab'>
+
                     </div>
                 </div>
-            : null}
-
-        </div>
+                <div className='mobile-bottom'>
+                    <button className='bottom-button' style={{marginRight: 10}}>select</button>
+                    <button className='bottom-button'>start</button>
+                </div>
+            </div>
         </div>
     </div>
   );

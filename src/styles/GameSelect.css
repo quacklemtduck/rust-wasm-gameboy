@@ -49,6 +49,7 @@
 .game-table {
     border: 1px rgb(101, 101, 101) solid;
     margin-top: 10px; 
+    overflow-y: scroll;
 }
 
 .game-row:last-child {
@@ -80,4 +81,11 @@
     border-radius: 0.3rem;
     width: fit-content;
     margin-top: 10px;
+}
+
+@media only screen and (max-width: 620px) {
+    .window {
+        width: 95vw;
+        max-height: 100dvh;
+    }
 }
